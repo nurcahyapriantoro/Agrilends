@@ -1,7 +1,9 @@
 use candid::Principal;
 use crate::types::*;
 use crate::user_management::{get_user_by_principal, Role};
+use crate::storage::*;
 use std::cell::RefCell;
+use ic_cdk::api::time;
 
 /// Validate NFT metadata contains all required fields
 pub fn validate_nft_metadata(metadata: &Vec<(String, MetadataValue)>) -> Result<(), String> {
@@ -159,5 +161,104 @@ pub fn extract_metadata_values(metadata: &Vec<(String, MetadataValue)>) -> (Stri
 /// Validate SHA-256 hash format
 pub fn validate_sha256_hash(hash: &str) -> bool {
     hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+/// Loan-specific helper functions
+pub fn log_audit_action(caller: Principal, action: String, details: String, success: bool) {
+    let log = AuditLog {
+        timestamp: time(),
+        caller,
+        action,
+        details,
+        success,
+    };
+    
+    let log_id = crate::storage::AUDIT_LOG_COUNTER.with(|counter| {
+        let current = *counter.borrow();
+        *counter.borrow_mut() = current + 1;
+        current + 1
+    });
+    
+    AUDIT_LOGS.with(|logs| {
+        logs.borrow_mut().insert(log_id, log);
+    });
+}
+
+/// Get canister configuration
+pub fn get_canister_config() -> CanisterConfig {
+    CONFIG_STORAGE.with(|config| {
+        config.borrow()
+            .get(&0)
+            .unwrap_or_else(|| CanisterConfig::default())
+    })
+}
+
+/// Set canister configuration
+pub fn set_canister_config(config: CanisterConfig) -> Result<(), String> {
+    CONFIG_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(0, config);
+        Ok(())
+    })
+}
+
+/// Add admin principal
+pub fn add_admin(admin: Principal) -> Result<(), String> {
+    let mut config = get_canister_config();
+    if !config.admin_principals.contains(&admin) {
+        config.admin_principals.push(admin);
+        set_canister_config(config)?;
+    }
+    Ok(())
+}
+
+/// Remove admin principal
+pub fn remove_admin(admin: Principal) -> Result<(), String> {
+    let mut config = get_canister_config();
+    config.admin_principals.retain(|&x| x != admin);
+    set_canister_config(config)?;
+    Ok(())
+}
+
+/// Calculate loan health ratio (collateral value vs debt)
+pub fn calculate_loan_health_ratio(loan: &Loan) -> Result<f64, String> {
+    if loan.amount_approved == 0 {
+        return Ok(f64::INFINITY);
+    }
+    
+    let health_ratio = (loan.collateral_value_btc as f64) / (loan.amount_approved as f64);
+    Ok(health_ratio)
+}
+
+/// Check if loan is at risk of liquidation
+pub fn is_loan_at_risk(loan: &Loan, threshold: f64) -> Result<bool, String> {
+    let health_ratio = calculate_loan_health_ratio(loan)?;
+    Ok(health_ratio < threshold)
+}
+
+/// Get overdue loans
+pub fn get_overdue_loans() -> Vec<Loan> {
+    let current_time = time();
+    let params = get_protocol_parameters();
+    let grace_period = params.grace_period_days * 24 * 60 * 60 * 1_000_000_000;
+    
+    get_all_loans_data()
+        .into_iter()
+        .filter(|loan| {
+            loan.status == LoanStatus::Active && 
+            loan.due_date.map_or(false, |due_date| current_time > due_date + grace_period)
+        })
+        .collect()
+}
+
+/// Format loan summary for notifications
+pub fn format_loan_summary(loan: &Loan) -> String {
+    format!(
+        "Loan #{}: Borrower {}, Amount {} satoshi, Status {:?}, Created {}",
+        loan.id,
+        loan.borrower.to_text(),
+        loan.amount_approved,
+        loan.status,
+        loan.created_at
+    )
 }
 

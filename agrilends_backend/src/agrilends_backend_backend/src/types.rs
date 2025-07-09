@@ -136,6 +136,76 @@ impl Default for CanisterConfig {
     }
 }
 
+// Loan Lifecycle Types
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq)]
+pub enum LoanStatus {
+    PendingApplication, // Menunggu data agunan dan valuasi
+    PendingApproval,    // Menunggu persetujuan dari peminjam
+    Approved,           // Disetujui, menunggu pencairan dana
+    Active,             // Dana sudah cair, pinjaman aktif
+    Repaid,             // Lunas
+    Defaulted,          // Gagal bayar
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct Loan {
+    pub id: u64,
+    pub borrower: Principal,
+    pub nft_id: u64,
+    pub collateral_value_btc: u64, // Nilai agunan dalam satoshi ckBTC
+    pub amount_requested: u64,      // Jumlah yang diminta dalam satoshi
+    pub amount_approved: u64,       // Jumlah yang disetujui (mis. 60% dari nilai agunan)
+    pub apr: u64,                   // Suku bunga per tahun, mis. 10
+    pub status: LoanStatus,
+    pub created_at: u64,
+    pub due_date: Option<u64>,      // Tanggal jatuh tempo
+    pub total_repaid: u64,          // Total yang sudah dibayar
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct LoanApplication {
+    pub nft_id: u64,
+    pub amount_requested: u64,
+    pub commodity_type: String,
+    pub quantity: u64,
+    pub grade: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CommodityPrice {
+    pub price_per_unit: u64, // Harga per unit dalam satoshi
+    pub currency: String,
+    pub timestamp: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct NFTMetadata {
+    pub valuation_idr: u64,
+    pub commodity_type: String,
+    pub quantity: u64,
+    pub grade: String,
+    pub warehouse_receipt_hash: String,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ProtocolParameters {
+    pub loan_to_value_ratio: u64, // Default 60%
+    pub base_apr: u64,            // Default 10%
+    pub max_loan_duration_days: u64, // Default 365 days
+    pub grace_period_days: u64,   // Default 30 days
+}
+
+impl Default for ProtocolParameters {
+    fn default() -> Self {
+        Self {
+            loan_to_value_ratio: 60,
+            base_apr: 10,
+            max_loan_duration_days: 365,
+            grace_period_days: 30,
+        }
+    }
+}
+
 // Implement Storable for RWANFTData
 impl Storable for RWANFTData {
     const BOUND: Bound = Bound::Unbounded;
@@ -186,4 +256,30 @@ impl Storable for CanisterConfig {
     }
 
     const BOUND: Bound = Bound::Unbounded;
+}
+
+// Implement Storable for Loan
+impl Storable for Loan {
+    const BOUND: Bound = Bound::Unbounded;
+    
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(candid::encode_one(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        candid::decode_one(&bytes).unwrap()
+    }
+}
+
+// Implement Storable for ProtocolParameters
+impl Storable for ProtocolParameters {
+    const BOUND: Bound = Bound::Unbounded;
+    
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(candid::encode_one(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        candid::decode_one(&bytes).unwrap()
+    }
 }

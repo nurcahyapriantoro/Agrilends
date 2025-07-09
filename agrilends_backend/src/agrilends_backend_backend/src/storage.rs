@@ -11,6 +11,8 @@ type NFTStorage = StableBTreeMap<u64, RWANFTData, Memory>;
 type CollateralStorage = StableBTreeMap<u64, CollateralRecord, Memory>;
 type AuditLogStorage = StableBTreeMap<u64, AuditLog, Memory>;
 type ConfigStorage = StableBTreeMap<u8, CanisterConfig, Memory>;
+type LoanStorage = StableBTreeMap<u64, Loan, Memory>;
+type ProtocolParamsStorage = StableBTreeMap<u8, ProtocolParameters, Memory>;
 
 // Memory Manager
 thread_local! {
@@ -55,11 +57,30 @@ thread_local! {
     );
 }
 
+// Storage for loans
+thread_local! {
+    pub static LOANS: RefCell<LoanStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(5)))
+        )
+    );
+}
+
+// Storage for protocol parameters
+thread_local! {
+    pub static PROTOCOL_PARAMS: RefCell<ProtocolParamsStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(6)))
+        )
+    );
+}
+
 // Token ID counters
 thread_local! {
     static NFT_TOKEN_COUNTER: RefCell<u64> = RefCell::new(0);
     static COLLATERAL_COUNTER: RefCell<u64> = RefCell::new(0);
-    static AUDIT_LOG_COUNTER: RefCell<u64> = RefCell::new(0);
+    pub static AUDIT_LOG_COUNTER: RefCell<u64> = RefCell::new(0);
+    static LOAN_COUNTER: RefCell<u64> = RefCell::new(0);
 }
 
 // Helper functions for token ID generation
@@ -79,6 +100,14 @@ pub fn next_collateral_id() -> u64 {
     })
 }
 
+pub fn next_loan_id() -> u64 {
+    LOAN_COUNTER.with(|counter| {
+        let current = *counter.borrow();
+        *counter.borrow_mut() = current + 1;
+        current + 1
+    })
+}
+
 // Helper function to get NFT by token ID
 pub fn get_nft_by_token_id(token_id: u64) -> Option<RWANFTData> {
     RWA_NFTS.with(|nfts| nfts.borrow().get(&token_id))
@@ -87,6 +116,11 @@ pub fn get_nft_by_token_id(token_id: u64) -> Option<RWANFTData> {
 // Helper function to get collateral by ID
 pub fn get_collateral_by_id(collateral_id: u64) -> Option<CollateralRecord> {
     COLLATERAL_RECORDS.with(|records| records.borrow().get(&collateral_id))
+}
+
+// Helper function to get loan by ID
+pub fn get_loan_by_id(loan_id: u64) -> Option<Loan> {
+    LOANS.with(|loans| loans.borrow().get(&loan_id))
 }
 
 // Update collateral status
@@ -205,36 +239,142 @@ pub fn get_audit_logs(limit: Option<u64>) -> Vec<AuditLog> {
 pub fn cleanup_audit_logs(keep_recent: u64) {
     AUDIT_LOGS.with(|logs| {
         let mut logs_map = logs.borrow_mut();
-        let total_logs = logs_map.len() as u64;
         
-        if total_logs > keep_recent {
-            // Get all log IDs and sort them
-            let mut log_ids: Vec<u64> = logs_map.iter().map(|(id, _)| id).collect();
-            log_ids.sort();
-            
-            // Remove oldest logs
-            let to_remove = total_logs - keep_recent;
-            for i in 0..to_remove {
-                if let Some(id) = log_ids.get(i as usize) {
-                    logs_map.remove(id);
-                }
+        // Get all logs sorted by timestamp
+        let mut all_logs: Vec<(u64, AuditLog)> = logs_map.iter().collect();
+        all_logs.sort_by(|a, b| b.1.timestamp.cmp(&a.1.timestamp));
+        
+        // Remove old logs (keep only recent ones)
+        if all_logs.len() > keep_recent as usize {
+            for (log_id, _) in all_logs.iter().skip(keep_recent as usize) {
+                logs_map.remove(log_id);
             }
         }
     });
 }
 
-/// Get storage statistics
-pub fn get_storage_stats() -> StorageStats {
-    let nft_count = RWA_NFTS.with(|nfts| nfts.borrow().len());
-    let collateral_count = COLLATERAL_RECORDS.with(|records| records.borrow().len());
-    let audit_log_count = AUDIT_LOGS.with(|logs| logs.borrow().len());
-    
-    StorageStats {
-        total_nfts: nft_count as u64,
-        total_collateral_records: collateral_count as u64,
-        total_audit_logs: audit_log_count as u64,
-        nft_token_counter: NFT_TOKEN_COUNTER.with(|c| *c.borrow()),
-        collateral_counter: COLLATERAL_COUNTER.with(|c| *c.borrow()),
-        audit_log_counter: AUDIT_LOG_COUNTER.with(|c| *c.borrow()),
-    }
+// Loan management functions
+pub fn get_next_loan_id() -> u64 {
+    LOAN_COUNTER.with(|counter| {
+        let current = *counter.borrow();
+        *counter.borrow_mut() = current + 1;
+        current + 1
+    })
+}
+
+pub fn store_loan(loan: Loan) -> Result<(), String> {
+    LOANS.with(|loans| {
+        loans.borrow_mut().insert(loan.id, loan);
+        Ok(())
+    })
+}
+
+pub fn get_loan(loan_id: u64) -> Option<Loan> {
+    LOANS.with(|loans| {
+        loans.borrow().get(&loan_id)
+    })
+}
+
+pub fn get_loans_by_borrower(borrower: Principal) -> Vec<Loan> {
+    LOANS.with(|loans| {
+        loans.borrow()
+            .iter()
+            .filter(|(_, loan)| loan.borrower == borrower)
+            .map(|(_, loan)| loan.clone())
+            .collect()
+    })
+}
+
+pub fn get_all_loans_data() -> Vec<Loan> {
+    LOANS.with(|loans| {
+        loans.borrow()
+            .iter()
+            .map(|(_, loan)| loan.clone())
+            .collect()
+    })
+}
+
+pub fn get_protocol_parameters() -> ProtocolParameters {
+    PROTOCOL_PARAMS.with(|params| {
+        params.borrow()
+            .get(&0)
+            .unwrap_or_else(|| ProtocolParameters::default())
+    })
+}
+
+pub fn set_protocol_parameters(params: ProtocolParameters) -> Result<(), String> {
+    PROTOCOL_PARAMS.with(|storage| {
+        storage.borrow_mut().insert(0, params);
+        Ok(())
+    })
+}
+
+pub fn get_nft_data(token_id: u64) -> Option<RWANFTData> {
+    get_nft_by_token_id(token_id)
+}
+
+pub fn lock_nft_for_loan(token_id: u64, loan_id: u64) -> Result<(), String> {
+    RWA_NFTS.with(|nfts| {
+        let mut nfts_map = nfts.borrow_mut();
+        if let Some(mut nft_data) = nfts_map.get(&token_id) {
+            if nft_data.is_locked {
+                return Err("NFT is already locked".to_string());
+            }
+            
+            nft_data.is_locked = true;
+            nft_data.loan_id = Some(loan_id);
+            nft_data.updated_at = time();
+            
+            nfts_map.insert(token_id, nft_data);
+            
+            // Update collateral record status
+            update_collateral_status(token_id, CollateralStatus::Locked, Some(loan_id));
+            
+            Ok(())
+        } else {
+            Err("NFT not found".to_string())
+        }
+    })
+}
+
+pub fn unlock_nft(token_id: u64) -> Result<(), String> {
+    RWA_NFTS.with(|nfts| {
+        let mut nfts_map = nfts.borrow_mut();
+        if let Some(mut nft_data) = nfts_map.get(&token_id) {
+            nft_data.is_locked = false;
+            nft_data.loan_id = None;
+            nft_data.updated_at = time();
+            
+            nfts_map.insert(token_id, nft_data);
+            
+            // Update collateral record status
+            update_collateral_status(token_id, CollateralStatus::Available, None);
+            
+            Ok(())
+        } else {
+            Err("NFT not found".to_string())
+        }
+    })
+}
+
+pub fn liquidate_collateral(token_id: u64, loan_id: u64) -> Result<(), String> {
+    RWA_NFTS.with(|nfts| {
+        let mut nfts_map = nfts.borrow_mut();
+        if let Some(mut nft_data) = nfts_map.get(&token_id) {
+            // Transfer ownership to system (represented by IC's management canister)
+            nft_data.owner = Principal::management_canister();
+            nft_data.is_locked = true;
+            nft_data.loan_id = Some(loan_id);
+            nft_data.updated_at = time();
+            
+            nfts_map.insert(token_id, nft_data);
+            
+            // Update collateral record status
+            update_collateral_status(token_id, CollateralStatus::Liquidated, Some(loan_id));
+            
+            Ok(())
+        } else {
+            Err("NFT not found".to_string())
+        }
+    })
 }
