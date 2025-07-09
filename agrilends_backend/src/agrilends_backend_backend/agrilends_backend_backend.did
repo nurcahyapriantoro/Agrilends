@@ -1,0 +1,163 @@
+type Role = variant {
+    Farmer;
+    Investor;
+};
+
+type User = record {
+    id: principal;
+    role: Role;
+    created_at: nat64;
+    btc_address: opt text;
+    is_active: bool;
+    updated_at: nat64;
+    email: opt text;
+    phone: opt text;
+    profile_completed: bool;
+};
+
+type UserUpdateRequest = record {
+    btc_address: opt text;
+    email: opt text;
+    phone: opt text;
+};
+
+type UserResult = variant {
+    Ok: User;
+    Err: text;
+};
+
+type BoolResult = variant {
+    Ok: bool;
+    Err: text;
+};
+
+type UserStats = record {
+    total_users: nat64;
+    total_farmers: nat64;
+    total_investors: nat64;
+    active_users: nat64;
+    inactive_users: nat64;
+    users_with_btc_address: nat64;
+    completed_profiles: nat64;
+};
+
+type MetadataValue = variant {
+    Text: text;
+    Nat: nat64;
+    Bool: bool;
+    Principal: principal;
+};
+
+type Account = record {
+    owner: principal;
+    subaccount: opt vec nat8;
+};
+
+type RWANFTData = record {
+    token_id: nat64;
+    owner: principal;
+    metadata: vec record { text; MetadataValue };
+    created_at: nat64;
+    updated_at: nat64;
+    is_locked: bool;
+    loan_id: opt nat64;
+};
+
+type TransferRequest = record {
+    from: opt Account;
+    to: Account;
+    token_id: nat64;
+    memo: opt vec nat8;
+    created_at_time: opt nat64;
+};
+
+type CollateralStatus = variant {
+    Available;
+    Locked;
+    Liquidated;
+    Released;
+};
+
+type CollateralRecord = record {
+    collateral_id: nat64;
+    nft_token_id: nat64;
+    owner: principal;
+    loan_id: opt nat64;
+    valuation_idr: nat64;
+    asset_description: text;
+    legal_doc_hash: text;
+    status: CollateralStatus;
+    created_at: nat64;
+    updated_at: nat64;
+};
+
+type RWANFTResult = variant {
+    Ok: RWANFTData;
+    Err: text;
+};
+
+type CollateralResult = variant {
+    Ok: CollateralRecord;
+    Err: text;
+};
+
+type TransferResult = variant {
+    Ok;
+    Err: text;
+};
+
+type NFTStats = record {
+    total_nfts: nat64;
+    locked_nfts: nat64;
+    available_collateral: nat64;
+    liquidated_collateral: nat64;
+};
+
+service : {
+    // User management functions
+    register_as_farmer: () -> (UserResult);
+    register_as_investor: () -> (UserResult);
+    get_user: () -> (UserResult) query;
+    update_btc_address: (text) -> (UserResult);
+    update_user_profile: (UserUpdateRequest) -> (UserResult);
+    deactivate_user: () -> (UserResult);
+    reactivate_user: () -> (UserResult);
+    get_user_by_id: (principal) -> (UserResult) query;
+    get_user_stats: () -> (UserStats) query;
+    is_farmer: (principal) -> (bool) query;
+    is_investor: (principal) -> (bool) query;
+    is_user_active: (principal) -> (bool) query;
+    has_completed_profile: (principal) -> (bool) query;
+    get_users_by_role: (Role) -> (vec User) query;
+    get_active_users: () -> (vec User) query;
+    get_all_users: () -> (vec User) query;
+    
+    // RWA NFT management functions
+    mint_rwa_nft: (principal, vec record { text; MetadataValue }) -> (variant { Ok: nat64; Err: text });
+    get_nft_details: (nat64) -> (opt record { principal; vec record { text; MetadataValue } }) query;
+    get_rwa_nft_data: (nat64) -> (RWANFTResult) query;
+    icrc7_transfer: (vec TransferRequest) -> (vec TransferResult);
+    lock_nft_as_collateral: (nat64, nat64) -> (TransferResult);
+    unlock_nft_from_collateral: (nat64) -> (TransferResult);
+    get_user_nfts: (principal) -> (vec RWANFTData) query;
+    get_user_collateral_records: (principal) -> (vec CollateralRecord) query;
+    get_collateral_by_nft_token_id: (nat64) -> (opt CollateralRecord) query;
+    get_available_collateral: (principal) -> (vec CollateralRecord) query;
+    liquidate_collateral: (nat64) -> (TransferResult);
+    get_nft_statistics: () -> (NFTStats) query;
+    get_all_nfts: () -> (vec RWANFTData) query;
+    get_all_collateral_records: () -> (vec CollateralRecord) query;
+    get_collateral_by_status: (CollateralStatus) -> (vec CollateralRecord) query;
+    
+    // ICRC-7 compliance functions
+    icrc7_collection_metadata: () -> (vec record { text; MetadataValue }) query;
+    icrc7_token_metadata: (vec nat64) -> (vec opt vec record { text; MetadataValue }) query;
+    icrc7_balance_of: (vec Account) -> (vec nat64) query;
+    icrc7_owner_of: (vec nat64) -> (vec opt Account) query;
+    
+    // System functions
+    get_canister_id: () -> (principal) query;
+    get_caller: () -> (principal) query;
+    health_check: () -> (text) query;
+    __get_candid_interface_tmp_hack: () -> (text) query;
+}

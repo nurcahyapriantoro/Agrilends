@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "agrilends_backend_backend": {
+      "candid": "src/agrilends_backend_backend/agrilends_backend_backend.did",
+      "package": "agrilends_backend_backend",
+      "type": "rust"
+    },
+    "agrilends_backend_frontend": {
+      "dependencies": [
+        "agrilends_backend_backend"
+      ],
+      "source": [
+        "src/agrilends_backend_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "agrilends_backend_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
