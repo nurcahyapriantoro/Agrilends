@@ -1,6 +1,6 @@
 use candid::{CandidType, Deserialize, Principal};
 use ic_cdk::api::time;
-use ic_cdk::api::caller;
+use ic_cdk::api::caller as msg_caller; // Perbaikan: gunakan caller sebagai msg_caller
 use ic_cdk_macros::{query, update};
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, Storable};
@@ -126,7 +126,7 @@ pub fn get_user_by_principal(principal: &Principal) -> Option<User> {
 /// Register caller as a farmer
 #[update]
 pub fn register_as_farmer() -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     // Check if user is already registered
     if user_exists(&principal) {
@@ -147,7 +147,7 @@ pub fn register_as_farmer() -> UserResult {
 /// Register caller as an investor
 #[update]
 pub fn register_as_investor() -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     // Check if user is already registered
     if user_exists(&principal) {
@@ -168,7 +168,7 @@ pub fn register_as_investor() -> UserResult {
 /// Get user data for the caller
 #[query]
 pub fn get_user() -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     match get_user_by_principal(&principal) {
         Some(user) => UserResult::Ok(user),
@@ -179,7 +179,7 @@ pub fn get_user() -> UserResult {
 /// Update user's BTC address
 #[update]
 pub fn update_btc_address(btc_address: String) -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     match get_user_by_principal(&principal) {
         Some(mut user) => {
@@ -210,7 +210,7 @@ pub fn update_btc_address(btc_address: String) -> UserResult {
 /// Get user by principal (for admin/internal use)
 #[query]
 pub fn get_user_by_id(user_id: Principal) -> UserResult {
-    let _caller_principal = caller();
+    let _caller_principal = msg_caller();
     
     // For now, allow any authenticated user to query others
     // In production, you might want to restrict this to admins only
@@ -303,7 +303,7 @@ pub fn get_all_users() -> Vec<User> {
 /// Update user profile
 #[update]
 pub fn update_user_profile(update_request: UserUpdateRequest) -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     match get_user_by_principal(&principal) {
         Some(mut user) => {
@@ -312,7 +312,7 @@ pub fn update_user_profile(update_request: UserUpdateRequest) -> UserResult {
             // Update BTC address if provided
             if let Some(btc_address) = update_request.btc_address {
                 if !btc_address.is_empty() {
-                    if btc_address.len() < 26 || btc_address.len() > 62 {
+                    if !validate_btc_address(&btc_address) {
                         return UserResult::Err("Invalid BTC address format".to_string());
                     }
                     user.btc_address = Some(btc_address);
@@ -323,7 +323,7 @@ pub fn update_user_profile(update_request: UserUpdateRequest) -> UserResult {
             // Update email if provided
             if let Some(email) = update_request.email {
                 if !email.is_empty() {
-                    if !email.contains('@') || email.len() < 5 {
+                    if !validate_email(&email) {
                         return UserResult::Err("Invalid email format".to_string());
                     }
                     user.email = Some(email);
@@ -334,7 +334,7 @@ pub fn update_user_profile(update_request: UserUpdateRequest) -> UserResult {
             // Update phone if provided
             if let Some(phone) = update_request.phone {
                 if !phone.is_empty() {
-                    if phone.len() < 10 || phone.len() > 20 {
+                    if !validate_phone(&phone) {
                         return UserResult::Err("Invalid phone number format".to_string());
                     }
                     user.phone = Some(phone);
@@ -367,7 +367,7 @@ pub fn update_user_profile(update_request: UserUpdateRequest) -> UserResult {
 /// Deactivate user account
 #[update]
 pub fn deactivate_user() -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     match get_user_by_principal(&principal) {
         Some(mut user) => {
@@ -388,7 +388,7 @@ pub fn deactivate_user() -> UserResult {
 /// Reactivate user account
 #[update]
 pub fn reactivate_user() -> UserResult {
-    let principal = caller();
+    let principal = msg_caller();
     
     match get_user_by_principal(&principal) {
         Some(mut user) => {
@@ -439,22 +439,93 @@ pub fn get_active_users() -> Vec<User> {
     })
 }
 
-/// Validate BTC address format
-pub fn validate_btc_address(address: &str) -> bool {
-    if address.len() < 26 || address.len() > 62 {
+/// Validate email format
+pub fn validate_email(email: &str) -> bool {
+    if email.is_empty() {
         return false;
     }
     
-    // Basic validation - should start with 1, 3, or bc1
-    address.starts_with('1') || address.starts_with('3') || address.starts_with("bc1")
-}
-
-/// Validate email format
-pub fn validate_email(email: &str) -> bool {
-    email.contains('@') && email.len() >= 5 && email.len() <= 254
+    // Basic email validation
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    
+    let local_part = parts[0];
+    let domain_part = parts[1];
+    
+    // Check if local part is not empty
+    if local_part.is_empty() {
+        return false;
+    }
+    
+    // Check if domain part is not empty and contains at least one dot
+    if domain_part.is_empty() || !domain_part.contains('.') {
+        return false;
+    }
+    
+    // Check if domain has at least one character before and after the last dot
+    let domain_parts: Vec<&str> = domain_part.split('.').collect();
+    if domain_parts.len() < 2 {
+        return false;
+    }
+    
+    // Check if all domain parts are not empty
+    for part in domain_parts {
+        if part.is_empty() {
+            return false;
+        }
+    }
+    
+    true
 }
 
 /// Validate phone number format
 pub fn validate_phone(phone: &str) -> bool {
-    phone.len() >= 10 && phone.len() <= 20 && phone.chars().all(|c| c.is_numeric() || c == '+' || c == '-' || c == ' ')
+    if phone.is_empty() {
+        return false;
+    }
+    
+    // Remove common phone number separators
+    let cleaned = phone.replace(&['-', ' ', '(', ')'][..], "");
+    
+    // Check if it starts with + (optional)
+    let number_part = if cleaned.starts_with('+') {
+        &cleaned[1..]
+    } else {
+        &cleaned
+    };
+    
+    // Check if all remaining characters are digits
+    if !number_part.chars().all(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    
+    // Check minimum length (should be at least 10 digits)
+    number_part.len() >= 10
+}
+
+/// Validate BTC address format
+pub fn validate_btc_address(address: &str) -> bool {
+    if address.is_empty() {
+        return false;
+    }
+    
+    // Basic BTC address validation
+    // Legacy addresses (P2PKH): start with 1, length 26-35
+    if address.starts_with('1') && address.len() >= 26 && address.len() <= 35 {
+        return address.chars().all(|c| c.is_ascii_alphanumeric() && c != '0' && c != 'O' && c != 'I' && c != 'l');
+    }
+    
+    // P2SH addresses: start with 3, length 26-35
+    if address.starts_with('3') && address.len() >= 26 && address.len() <= 35 {
+        return address.chars().all(|c| c.is_ascii_alphanumeric() && c != '0' && c != 'O' && c != 'I' && c != 'l');
+    }
+    
+    // Bech32 addresses: start with bc1, length 42-62
+    if address.starts_with("bc1") && address.len() >= 42 && address.len() <= 62 {
+        return address.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit());
+    }
+    
+    false
 }

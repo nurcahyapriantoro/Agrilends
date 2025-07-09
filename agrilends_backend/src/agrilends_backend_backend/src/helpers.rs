@@ -1,65 +1,132 @@
+use candid::Principal;
 use crate::types::*;
 use crate::user_management::{get_user_by_principal, Role};
-use candid::Principal;
+use std::cell::RefCell;
 
-// Helper function to check if user is authorized to mint NFTs
-pub fn is_authorized_to_mint(principal: &Principal) -> bool {
-    match get_user_by_principal(principal) {
-        Some(user) => user.role == Role::Farmer && user.is_active,
-        None => false,
-    }
-}
-
-// Helper function to validate NFT metadata
+/// Validate NFT metadata contains all required fields
 pub fn validate_nft_metadata(metadata: &Vec<(String, MetadataValue)>) -> Result<(), String> {
-    // Check if required fields are present
-    let mut has_asset_description = false;
-    let mut has_valuation = false;
     let mut has_legal_doc = false;
+    let mut has_valuation = false;
+    let mut has_description = false;
     
     for (key, value) in metadata {
         match key.as_str() {
-            "asset_description" => {
-                if let MetadataValue::Text(desc) = value {
-                    if !desc.is_empty() {
-                        has_asset_description = true;
-                    }
-                }
-            }
-            "valuation_idr" => {
-                if let MetadataValue::Nat(val) = value {
-                    if *val > 0 {
-                        has_valuation = true;
-                    }
-                }
-            }
-            "legal_doc_hash" => {
+            "rwa:legal_doc_hash" => {
                 if let MetadataValue::Text(hash) = value {
-                    if !hash.is_empty() {
-                        has_legal_doc = true;
+                    if hash.len() != 64 { // SHA-256 hash should be 64 chars
+                        return Err("Invalid legal document hash format".to_string());
                     }
+                    has_legal_doc = true;
                 }
-            }
+            },
+            "rwa:valuation_idr" => {
+                if let MetadataValue::Nat(val) = value {
+                    if *val == 0 {
+                        return Err("Valuation must be greater than 0".to_string());
+                    }
+                    has_valuation = true;
+                }
+            },
+            "rwa:asset_description" => {
+                if let MetadataValue::Text(desc) = value {
+                    if desc.trim().is_empty() {
+                        return Err("Asset description cannot be empty".to_string());
+                    }
+                    has_description = true;
+                }
+            },
             _ => {}
         }
     }
     
-    if !has_asset_description {
-        return Err("Missing required field: asset_description".to_string());
-    }
-    
-    if !has_valuation {
-        return Err("Missing required field: valuation_idr".to_string());
-    }
-    
     if !has_legal_doc {
-        return Err("Missing required field: legal_doc_hash".to_string());
+        return Err("Missing required metadata: rwa:legal_doc_hash".to_string());
+    }
+    if !has_valuation {
+        return Err("Missing required metadata: rwa:valuation_idr".to_string());
+    }
+    if !has_description {
+        return Err("Missing required metadata: rwa:asset_description".to_string());
     }
     
     Ok(())
 }
 
-// Helper function to extract metadata values
+// PRODUCTION FIX: Add proper admin configuration
+thread_local! {
+    static ADMIN_PRINCIPALS: RefCell<Vec<Principal>> = RefCell::new(vec![]);
+    static LOAN_MANAGER_PRINCIPAL: RefCell<Option<Principal>> = RefCell::new(None);
+}
+
+/// Initialize admin principals (call this during canister init)
+pub fn init_admin_principals(admins: Vec<Principal>) {
+    ADMIN_PRINCIPALS.with(|principals| {
+        *principals.borrow_mut() = admins;
+    });
+}
+
+/// Set loan manager canister principal
+pub fn set_loan_manager_principal(principal: Principal) {
+    LOAN_MANAGER_PRINCIPAL.with(|p| {
+        *p.borrow_mut() = Some(principal);
+    });
+}
+
+/// Check if caller is admin (PRODUCTION VERSION)
+pub fn is_admin(caller: &Principal) -> bool {
+    ADMIN_PRINCIPALS.with(|principals| {
+        principals.borrow().contains(caller)
+    })
+}
+
+/// Check if caller is the loan manager canister (PRODUCTION VERSION)
+pub fn is_loan_manager_canister(caller: &Principal) -> bool {
+    LOAN_MANAGER_PRINCIPAL.with(|p| {
+        if let Some(loan_manager) = *p.borrow() {
+            *caller == loan_manager
+        } else {
+            false
+        }
+    })
+}
+
+/// Enhanced authorization check
+pub fn is_authorized_to_mint(caller: &Principal) -> bool {
+    // Check if caller is admin
+    if is_admin(caller) {
+        return true;
+    }
+    
+    // Check if caller is registered farmer
+    if let Some(user) = get_user_by_principal(caller) {
+        return user.role == Role::Farmer && user.is_active;
+    }
+    
+    false
+}
+
+// Add rate limiting
+thread_local! {
+    static RATE_LIMITER: RefCell<std::collections::HashMap<Principal, u64>> = RefCell::new(std::collections::HashMap::new());
+}
+
+pub fn check_rate_limit(caller: &Principal, _max_calls_per_minute: u64) -> Result<(), String> {
+    let current_time = ic_cdk::api::time() / 1_000_000_000 / 60; // Convert to minutes
+    
+    RATE_LIMITER.with(|limiter| {
+        let mut map = limiter.borrow_mut();
+        let last_call = map.get(caller).unwrap_or(&0);
+        
+        if current_time == *last_call {
+            return Err("Rate limit exceeded. Please try again later.".to_string());
+        }
+        
+        map.insert(*caller, current_time);
+        Ok(())
+    })
+}
+
+/// Extract metadata values for collateral record
 pub fn extract_metadata_values(metadata: &Vec<(String, MetadataValue)>) -> (String, u64, String) {
     let mut legal_doc_hash = String::new();
     let mut valuation_idr = 0u64;
@@ -67,21 +134,21 @@ pub fn extract_metadata_values(metadata: &Vec<(String, MetadataValue)>) -> (Stri
     
     for (key, value) in metadata {
         match key.as_str() {
-            "legal_doc_hash" => {
+            "rwa:legal_doc_hash" => {
                 if let MetadataValue::Text(hash) = value {
                     legal_doc_hash = hash.clone();
                 }
-            }
-            "valuation_idr" => {
+            },
+            "rwa:valuation_idr" => {
                 if let MetadataValue::Nat(val) = value {
                     valuation_idr = *val;
                 }
-            }
-            "asset_description" => {
+            },
+            "rwa:asset_description" => {
                 if let MetadataValue::Text(desc) = value {
                     asset_description = desc.clone();
                 }
-            }
+            },
             _ => {}
         }
     }
@@ -89,22 +156,8 @@ pub fn extract_metadata_values(metadata: &Vec<(String, MetadataValue)>) -> (Stri
     (legal_doc_hash, valuation_idr, asset_description)
 }
 
-// Helper function to validate BTC address
-pub fn validate_btc_address(address: &str) -> bool {
-    if address.len() < 26 || address.len() > 62 {
-        return false;
-    }
-    
-    // Basic validation - should start with 1, 3, or bc1
-    address.starts_with('1') || address.starts_with('3') || address.starts_with("bc1")
+/// Validate SHA-256 hash format
+pub fn validate_sha256_hash(hash: &str) -> bool {
+    hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-// Helper function to validate email
-pub fn validate_email(email: &str) -> bool {
-    email.contains('@') && email.len() >= 5 && email.len() <= 254
-}
-
-// Helper function to validate phone number
-pub fn validate_phone(phone: &str) -> bool {
-    phone.len() >= 10 && phone.len() <= 20 && phone.chars().all(|c| c.is_numeric() || c == '+' || c == '-' || c == ' ')
-}

@@ -125,3 +125,49 @@ The user management system provides the following main functions:
 - `is_investor(principal)` - Check if user is an investor
 
 For complete API documentation, see the [User Management Guide](USER_MANAGEMENT_GUIDE.md).
+
+# Agrilends Backend - RWA NFT System
+
+## Production Deployment Checklist
+
+### Pre-deployment
+- [ ] Configure admin principals
+- [ ] Set loan manager canister principal
+- [ ] Review and set configuration limits
+- [ ] Test emergency stop functionality
+- [ ] Verify all validations are working
+- [ ] Run full test suite: `cargo test`
+- [ ] Performance testing completed
+- [ ] Security audit completed
+
+### Deployment Steps
+1. **Deploy to testnet first**
+2. **Initialize configuration**
+3. **Test all functions**
+4. **Deploy to mainnet**
+5. **Initialize production config**
+
+### Monitoring
+- Monitor audit logs regularly
+- Check rate limiting effectiveness
+- Monitor NFT creation patterns
+- Watch for unusual activity
+
+### Emergency Procedures
+- Emergency stop: Call `set_emergency_stop(true)`
+- Maintenance mode: Call `set_maintenance_mode(true)`
+- Admin override: Use admin functions
+
+## Configuration
+```rust
+// Example production config
+let config = CanisterConfig {
+    admin_principals: vec![Principal::from_text("admin1").unwrap()],
+    loan_manager_principal: Some(Principal::from_text("loan_manager").unwrap()),
+    max_nft_per_user: 100,
+    min_collateral_value: 100_000_000,
+    max_collateral_value: 10_000_000_000,
+    emergency_stop: false,
+    maintenance_mode: false,
+};
+```
