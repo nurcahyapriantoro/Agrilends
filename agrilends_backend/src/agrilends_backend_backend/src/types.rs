@@ -1,4 +1,4 @@
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize, Principal, Encode, Decode};
 use ic_stable_structures::{Storable, storable::Bound};
 use std::borrow::Cow;
 
@@ -93,11 +93,20 @@ pub struct NFTStats {
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct StorageStats {
     pub total_nfts: u64,
-    pub total_collateral_records: u64,
-    pub total_audit_logs: u64,
-    pub nft_token_counter: u64,
-    pub collateral_counter: u64,
-    pub audit_log_counter: u64,
+    pub total_loans: u64,
+    pub total_users: u64,
+    pub memory_usage_bytes: u64,
+}
+
+impl Default for StorageStats {
+    fn default() -> Self {
+        Self {
+            total_nfts: 0,
+            total_loans: 0,
+            total_users: 0,
+            memory_usage_bytes: 0,
+        }
+    }
 }
 
 // Audit Log structure
@@ -113,25 +122,35 @@ pub struct AuditLog {
 // Canister Configuration
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct CanisterConfig {
-    pub admin_principals: Vec<Principal>,
+    pub admins: Vec<Principal>, // Changed from admin_principals to match helpers.rs
     pub loan_manager_principal: Option<Principal>,
     pub max_nft_per_user: u64,
     pub min_collateral_value: u64,
     pub max_collateral_value: u64,
     pub emergency_stop: bool,
-    pub maintenance_mode: bool,
+    pub maintenance_mode: bool, // Keep only one maintenance mode field
+    pub min_deposit_amount: u64,
+    pub max_utilization_rate: f64,
+    pub emergency_reserve_ratio: f64,
+    pub created_at: u64,
+    pub updated_at: u64,
 }
 
 impl Default for CanisterConfig {
     fn default() -> Self {
         Self {
-            admin_principals: vec![],
+            admins: vec![],
             loan_manager_principal: None,
             max_nft_per_user: 100,
             min_collateral_value: 100_000_000, // 100M IDR
             max_collateral_value: 10_000_000_000, // 10B IDR
             emergency_stop: false,
             maintenance_mode: false,
+            min_deposit_amount: 1_000_000, // 1M satoshi
+            max_utilization_rate: 0.8, // 80%
+            emergency_reserve_ratio: 0.2, // 20%
+            created_at: 0,
+            updated_at: 0,
         }
     }
 }
@@ -176,6 +195,18 @@ pub struct CommodityPrice {
     pub price_per_unit: u64, // Harga per unit dalam satoshi
     pub currency: String,
     pub timestamp: u64,
+}
+
+impl Storable for CommodityPrice {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -281,5 +312,253 @@ impl Storable for ProtocolParameters {
 
     fn from_bytes(bytes: Cow<[u8]>) -> Self {
         candid::decode_one(&bytes).unwrap()
+    }
+}
+
+// Additional types for production features
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct DisbursementRecord {
+    pub loan_id: u64,
+    pub borrower_btc_address: String,
+    pub amount: u64,
+    pub ckbtc_block_index: u64,
+    pub disbursed_at: u64,
+    pub disbursed_by: Principal,
+}
+
+impl Storable for DisbursementRecord {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct RepaymentRecord {
+    pub loan_id: u64,
+    pub payer: Principal,
+    pub amount: u64,
+    pub ckbtc_block_index: u64,
+    pub timestamp: u64,
+}
+
+impl Storable for RepaymentRecord {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct LiquidityPool {
+    pub total_liquidity: u64,
+    pub available_liquidity: u64,
+    pub total_borrowed: u64,
+    pub total_repaid: u64,
+    pub utilization_rate: u64,
+    pub total_investors: u64,
+    pub apy: u64,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+impl Storable for LiquidityPool {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct InvestorBalance {
+    pub investor: Principal,
+    pub balance: u64,
+    pub total_deposited: u64,
+    pub total_withdrawn: u64,
+    pub deposits: Vec<DepositRecord>,
+    pub withdrawals: Vec<WithdrawalRecord>,
+    pub first_deposit_at: u64,
+    pub last_activity_at: u64,
+}
+
+impl Storable for InvestorBalance {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct DepositRecord {
+    pub investor: Principal,
+    pub amount: u64,
+    pub ckbtc_block_index: u64,
+    pub timestamp: u64,
+}
+
+impl Storable for DepositRecord {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct WithdrawalRecord {
+    pub investor: Principal,
+    pub amount: u64,
+    pub ckbtc_block_index: u64,
+    pub timestamp: u64,
+}
+
+impl Storable for WithdrawalRecord {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ProcessedTransaction {
+    pub tx_id: u64,
+    pub processed_at: u64,
+    pub processor: Principal,
+}
+
+impl Storable for ProcessedTransaction {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct ProductionHealthStatus {
+    pub is_healthy: bool,
+    pub emergency_stop: bool,
+    pub maintenance_mode: bool,
+    pub oracle_status: bool,
+    pub ckbtc_integration: bool,
+    pub memory_usage: u64,
+    pub total_loans: u64,
+    pub active_loans: u64,
+    pub last_heartbeat: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct CommodityPriceData {
+    pub commodity_type: String,
+    pub price_per_unit: u64,
+    pub currency: String,
+    pub timestamp: u64,
+    pub source: String,
+}
+
+#[derive(CandidType, Deserialize, Default, Clone, Debug)]
+pub struct PoolStats {
+    pub total_liquidity: u64,
+    pub available_liquidity: u64,
+    pub total_borrowed: u64,
+    pub total_repaid: u64,
+    pub utilization_rate: f64,
+    pub total_investors: u64,
+    pub apy: f64,
+}
+
+#[derive(CandidType, Deserialize, Default, Clone, Debug)]
+pub struct InvestorTransactionHistory {
+    pub deposits: Vec<DepositRecord>,
+    pub withdrawals: Vec<WithdrawalRecord>,
+}
+
+#[derive(CandidType, Deserialize, Default, Clone, Debug)]
+pub struct PoolHealthMetrics {
+    pub total_value_locked: u64,
+    pub active_loans: u64,
+    pub defaulted_loans: u64,
+    pub average_deposit_size: u64,
+    pub active_investors: u64,
+}
+
+#[derive(CandidType, Deserialize, Default, Clone, Debug)]
+pub struct PoolConfiguration {
+    pub min_deposit_amount: u64,
+    pub max_utilization_rate: f64,
+    pub emergency_reserve_ratio: f64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct PriceFetchRecord {
+    pub commodity_type: String,
+    pub last_fetch_time: u64,
+    pub fetch_count: u64,
+}
+
+impl Storable for PriceFetchRecord {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+    
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+// StorageStats already defined above at line 94 - removing duplicate
+
+// Add missing emergency configuration
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct EmergencyConfig {
+    pub max_single_loan_percentage: u64, // Max percentage of total liquidity for single loan
+    pub max_utilization_rate: u64,       // Max utilization rate before emergency
+    pub min_reserve_ratio: u64,          // Minimum reserve ratio to maintain
+    pub emergency_contact: Option<Principal>, // Emergency contact principal
+}
+
+impl Default for EmergencyConfig {
+    fn default() -> Self {
+        Self {
+            max_single_loan_percentage: 80, // 80% max
+            max_utilization_rate: 95,       // 95% max
+            min_reserve_ratio: 15,          // 15% min reserve
+            emergency_contact: None,
+        }
     }
 }

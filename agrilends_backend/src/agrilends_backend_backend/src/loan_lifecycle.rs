@@ -1,10 +1,16 @@
-use candid::Principal;
 use ic_cdk::{caller, api::time};
 use ic_cdk_macros::{query, update};
 use crate::types::*;
-use crate::storage::*;
+use crate::storage::{
+    get_loan, store_loan, get_next_loan_id, get_loans_by_borrower,
+    get_all_loans_data, get_nft_data, lock_nft_for_loan, get_stored_commodity_price,
+    get_protocol_parameters, liquidate_collateral, unlock_nft
+};
 use crate::user_management::{get_user, Role, UserResult};
-use crate::helpers::*;
+use crate::helpers::{get_user_btc_address, log_audit_action, get_canister_config};
+// Production integrations  
+use crate::oracle::{is_price_stale};
+use crate::ckbtc_integration::{process_ckbtc_repayment};
 
 // Submit loan application
 #[update]
@@ -39,14 +45,20 @@ pub async fn submit_loan_application(
     let valuation_idr = extract_valuation_from_metadata(&nft_data.metadata)?;
     let commodity_info = extract_commodity_info_from_metadata(&nft_data.metadata)?;
 
-    // 5. Simulasi API call untuk harga komoditas (dalam implementasi nyata, gunakan HTTPS outcall)
-    let commodity_price = get_mock_commodity_price(&commodity_info.commodity_type).await?;
+    // 5. Ambil harga komoditas real dari Oracle
+    let commodity_price_data = get_stored_commodity_price(&commodity_info.commodity_type)
+        .ok_or_else(|| "Commodity price not available. Please contact admin to update price feeds.".to_string())?;
+    
+    // Check if price is stale (older than 24 hours)
+    if is_price_stale(commodity_info.commodity_type.clone()) {
+        return Err("Commodity price data is stale. Please wait for price update.".to_string());
+    }
 
     // 6. Hitung nilai agunan dalam ckBTC
     let collateral_value_btc = calculate_collateral_value_btc(
         valuation_idr,
         commodity_info.quantity,
-        &commodity_price,
+        &commodity_price_data,
     )?;
 
     // 7. Ambil parameter protokol
@@ -126,8 +138,12 @@ pub async fn accept_loan_offer(loan_id: u64) -> Result<String, String> {
         time() + (params.max_loan_duration_days * 24 * 60 * 60 * 1_000_000_000)
     );
 
-    // 6. Simulasi pencairan dana (dalam implementasi nyata, panggil canister liquidity pool)
-    match simulate_loan_disbursement(&loan).await {
+    // 6. Coba cairkan dana via liquidity management
+    // First, get the borrower's Bitcoin address (this would need to be stored in user profile)
+    let borrower_btc_address = get_user_btc_address(&caller)
+        .ok_or("Borrower Bitcoin address not found. Please update your profile.".to_string())?;
+    
+    match crate::liquidity_management::disburse_loan(loan_id, borrower_btc_address, loan.amount_approved).await {
         Ok(_) => {
             loan.status = LoanStatus::Active;
             
@@ -138,17 +154,24 @@ pub async fn accept_loan_offer(loan_id: u64) -> Result<String, String> {
             log_audit_action(
                 caller,
                 "LOAN_ACCEPTED".to_string(),
-                format!("Loan #{} accepted and disbursed", loan_id),
+                format!("Loan #{} accepted and disbursed via liquidity pool", loan_id),
                 true,
             );
 
-            Ok("Loan approved, collateral secured, and disbursement initiated.".to_string())
+            Ok("Loan approved, collateral secured, and disbursement completed.".to_string())
         }
         Err(e) => {
             // Rollback NFT lock jika pencairan gagal
             let _ = unlock_nft(loan.nft_id);
             loan.status = LoanStatus::PendingApproval;
             store_loan(loan)?;
+
+            log_audit_action(
+                caller,
+                "LOAN_DISBURSEMENT_FAILED".to_string(),
+                format!("Loan #{} disbursement failed: {}", loan_id, e),
+                false,
+            );
 
             Err(format!("Disbursement failed: {}", e))
         }
@@ -201,8 +224,8 @@ pub async fn repay_loan(loan_id: u64, amount: u64) -> Result<String, String> {
         return Err(format!("Payment amount {} exceeds remaining debt {}", amount, remaining_debt));
     }
 
-    // 5. Simulasi pembayaran (dalam implementasi nyata, gunakan ICRC-1 transfer)
-    match simulate_payment_transfer(caller, amount).await {
+    // 5. Proses pembayaran melalui integrasi ckBTC
+    match process_ckbtc_repayment(loan_id, amount).await {
         Ok(_) => {
             // Update loan
             loan.total_repaid += amount;
@@ -338,23 +361,6 @@ pub fn extract_commodity_info_from_metadata(metadata: &Vec<(String, MetadataValu
     }
 }
 
-async fn get_mock_commodity_price(commodity_type: &str) -> Result<CommodityPrice, String> {
-    // Simulasi harga komoditas - dalam implementasi nyata gunakan HTTPS outcall
-    let price_per_unit = match commodity_type {
-        "rice" => 15000,      // IDR per kg
-        "corn" => 8000,       // IDR per kg
-        "wheat" => 12000,     // IDR per kg
-        "coffee" => 45000,    // IDR per kg
-        _ => 10000,           // Default price
-    };
-
-    Ok(CommodityPrice {
-        price_per_unit,
-        currency: "IDR".to_string(),
-        timestamp: time(),
-    })
-}
-
 pub fn calculate_collateral_value_btc(
     valuation_idr: u64,
     quantity: u64,
@@ -399,38 +405,11 @@ pub fn calculate_total_debt(loan: &Loan) -> Result<u64, String> {
     Ok(total_debt)
 }
 
-async fn simulate_loan_disbursement(loan: &Loan) -> Result<String, String> {
-    // Simulasi pencairan dana - dalam implementasi nyata, panggil canister liquidity pool
-    // dan transfer ckBTC ke alamat peminjam
-    
-    log_audit_action(
-        loan.borrower,
-        "LOAN_DISBURSED".to_string(),
-        format!("Simulated disbursement of {} satoshi for loan #{}", loan.amount_approved, loan.id),
-        true,
-    );
-
-    Ok("Disbursement successful".to_string())
-}
-
-async fn simulate_payment_transfer(payer: Principal, amount: u64) -> Result<String, String> {
-    // Simulasi transfer pembayaran - dalam implementasi nyata, gunakan ICRC-1 transfer
-    
-    log_audit_action(
-        payer,
-        "PAYMENT_RECEIVED".to_string(),
-        format!("Simulated payment of {} satoshi received", amount),
-        true,
-    );
-
-    Ok("Payment successful".to_string())
-}
-
 fn verify_admin_access() -> Result<(), String> {
     let caller = caller();
     let config = get_canister_config();
     
-    if config.admin_principals.contains(&caller) {
+    if config.admins.contains(&caller) {
         Ok(())
     } else {
         Err("Unauthorized: Admin access required".to_string())

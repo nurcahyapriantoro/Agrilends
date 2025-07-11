@@ -1,4 +1,3 @@
-use candid::Principal;
 use ic_cdk_macros::{update, query};
 use crate::types::CanisterConfig;
 use crate::storage::{get_config, update_config, log_action};
@@ -92,35 +91,3 @@ pub struct SystemHealth {
     pub total_users: u64,
     pub system_uptime: u64,
 }
-
-# Production Deployment Checklist
-
-## Pre-Deployment
-- [ ] All tests passing (✅ 37/37)
-- [ ] Security review completed
-- [ ] Configuration validated
-- [ ] Admin principals configured
-- [ ] Rate limits tested
-- [ ] Error handling verified
-- [ ] Audit logging tested
-
-## Deployment Steps
-1. Deploy to testnet first
-2. Initialize admin principals
-3. Configure rate limits
-4. Test all functions
-5. Run security audit
-6. Deploy to mainnet
-7. Initialize production config
-
-## Post-Deployment Monitoring
-- [ ] Monitor audit logs
-- [ ] Check system health
-- [ ] Verify NFT creation
-- [ ] Monitor user registration
-- [ ] Check rate limiting effectiveness
-
-## Emergency Procedures
-- Emergency stop: Call `emergency_stop()`
-- Resume operations: Call `resume_operations()`
-- Blacklist principal: Call `admin_blacklist_principal()`

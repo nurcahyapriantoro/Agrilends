@@ -47,7 +47,7 @@ pub enum BoolResult {
 }
 
 // Statistics for admin purposes
-#[derive(CandidType, Deserialize, Clone)]
+#[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserStats {
     pub total_users: u64,
     pub total_farmers: u64,

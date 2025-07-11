@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "security_policy": {
+    "content_security_policy": {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:"],
+      "font-src": ["'self'"],
+      "connect-src": ["'self'", "https://*.ic0.app", "https://*.icp0.io"],
+      "frame-ancestors": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"]
+    },
+    "permissions_policy": {
+      "camera": [],
+      "microphone": [],
+      "geolocation": [],
+      "payment": []
+    }
+  },
+  "disable_security_policy_warning": false
+}

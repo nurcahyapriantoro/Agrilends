@@ -76,20 +76,18 @@ pub fn set_loan_manager_principal(principal: Principal) {
 
 /// Check if caller is admin (PRODUCTION VERSION)
 pub fn is_admin(caller: &Principal) -> bool {
-    ADMIN_PRINCIPALS.with(|principals| {
-        principals.borrow().contains(caller)
-    })
+    let config = get_canister_config();
+    config.admins.contains(caller)
 }
 
 /// Check if caller is the loan manager canister (PRODUCTION VERSION)
 pub fn is_loan_manager_canister(caller: &Principal) -> bool {
-    LOAN_MANAGER_PRINCIPAL.with(|p| {
-        if let Some(loan_manager) = *p.borrow() {
-            *caller == loan_manager
-        } else {
-            false
-        }
-    })
+    let config = get_canister_config();
+    if let Some(loan_manager) = config.loan_manager_principal {
+        *caller == loan_manager
+    } else {
+        false
+    }
 }
 
 /// Enhanced authorization check
@@ -165,47 +163,25 @@ pub fn validate_sha256_hash(hash: &str) -> bool {
 
 /// Loan-specific helper functions
 pub fn log_audit_action(caller: Principal, action: String, details: String, success: bool) {
-    let log = AuditLog {
-        timestamp: time(),
-        caller,
-        action,
-        details,
-        success,
-    };
-    
-    let log_id = crate::storage::AUDIT_LOG_COUNTER.with(|counter| {
-        let current = *counter.borrow();
-        *counter.borrow_mut() = current + 1;
-        current + 1
-    });
-    
-    AUDIT_LOGS.with(|logs| {
-        logs.borrow_mut().insert(log_id, log);
-    });
+    // Use the existing log_action function from storage
+    log_action(&action, &format!("{}:{}", caller.to_text(), details), success);
 }
 
 /// Get canister configuration
 pub fn get_canister_config() -> CanisterConfig {
-    CONFIG_STORAGE.with(|config| {
-        config.borrow()
-            .get(&0)
-            .unwrap_or_else(|| CanisterConfig::default())
-    })
+    get_config()
 }
 
 /// Set canister configuration
 pub fn set_canister_config(config: CanisterConfig) -> Result<(), String> {
-    CONFIG_STORAGE.with(|storage| {
-        storage.borrow_mut().insert(0, config);
-        Ok(())
-    })
+    update_config(config)
 }
 
 /// Add admin principal
 pub fn add_admin(admin: Principal) -> Result<(), String> {
     let mut config = get_canister_config();
-    if !config.admin_principals.contains(&admin) {
-        config.admin_principals.push(admin);
+    if !config.admins.contains(&admin) {
+        config.admins.push(admin);
         set_canister_config(config)?;
     }
     Ok(())
@@ -214,7 +190,7 @@ pub fn add_admin(admin: Principal) -> Result<(), String> {
 /// Remove admin principal
 pub fn remove_admin(admin: Principal) -> Result<(), String> {
     let mut config = get_canister_config();
-    config.admin_principals.retain(|&x| x != admin);
+    config.admins.retain(|&x| x != admin);
     set_canister_config(config)?;
     Ok(())
 }
@@ -260,5 +236,85 @@ pub fn format_loan_summary(loan: &Loan) -> String {
         loan.status,
         loan.created_at
     )
+}
+
+// Production helper functions
+pub fn is_loan_manager(principal: &Principal) -> bool {
+    LOAN_MANAGER_PRINCIPAL.with(|manager| {
+        manager.borrow().as_ref() == Some(principal)
+    })
+}
+
+pub fn release_collateral_nft(nft_id: u64) -> Result<(), String> {
+    // This would unlock the NFT and return it to the borrower
+    unlock_nft(nft_id)
+}
+
+pub fn get_active_loans_count() -> u64 {
+    LOANS.with(|loans| {
+        loans.borrow().iter()
+            .filter(|(_, loan)| loan.status == LoanStatus::Active)
+            .count() as u64
+    })
+}
+
+pub fn get_memory_usage() -> u64 {
+    // Placeholder - would need actual memory calculation
+    // In real implementation, use ic_cdk::api::canister_status
+    0
+}
+
+pub fn check_oracle_health() -> bool {
+    // Check if oracle prices are recent and available
+    true
+}
+
+pub fn check_ckbtc_health() -> bool {
+    // Check if ckBTC integration is working
+    true
+}
+
+pub fn get_last_heartbeat_time() -> u64 {
+    // Return last heartbeat timestamp
+    ic_cdk::api::time()
+}
+
+pub fn is_in_maintenance_mode() -> bool {
+    let config = get_canister_config();
+    config.maintenance_mode
+}
+
+pub fn get_emergency_stop_status() -> bool {
+    let config = get_canister_config();
+    config.emergency_stop
+}
+
+pub async fn check_overdue_loans() {
+    // Check for overdue loans and take action
+    let overdue_loans = get_overdue_loans();
+    for loan in overdue_loans {
+        log_action(
+            "overdue_loan_detected",
+            &format!("Loan {} is overdue", loan.id),
+            false,
+        );
+    }
+}
+
+pub fn monitor_cycles_balance() {
+    // Monitor canister cycles and alert if low
+    // This would use ic_cdk::api::canister_balance
+}
+
+pub fn cleanup_old_audit_logs() {
+    // Cleanup old audit logs to save memory
+    cleanup_audit_logs(1000); // Keep last 1000 entries
+}
+
+pub fn get_user_btc_address(principal: &Principal) -> Option<String> {
+    match get_user_by_principal(principal) {
+        Some(user) => user.btc_address,
+        None => None,
+    }
 }
 

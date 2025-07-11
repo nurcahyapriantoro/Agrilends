@@ -13,6 +13,16 @@ type AuditLogStorage = StableBTreeMap<u64, AuditLog, Memory>;
 type ConfigStorage = StableBTreeMap<u8, CanisterConfig, Memory>;
 type LoanStorage = StableBTreeMap<u64, Loan, Memory>;
 type ProtocolParamsStorage = StableBTreeMap<u8, ProtocolParameters, Memory>;
+type OraclePriceStorage = StableBTreeMap<String, CommodityPrice, Memory>;
+type RepaymentStorage = StableBTreeMap<u64, RepaymentRecord, Memory>;
+
+// Liquidity Management Storage Types
+type LiquidityPoolStorage = StableBTreeMap<u8, LiquidityPool, Memory>;
+type InvestorBalanceStorage = StableBTreeMap<Principal, InvestorBalance, Memory>;
+type ProcessedTransactionStorage = StableBTreeMap<u64, ProcessedTransaction, Memory>;
+type EmergencyPauseStorage = StableBTreeMap<u8, bool, Memory>;
+type DisbursementRecordStorage = StableBTreeMap<u64, DisbursementRecord, Memory>;
+// type PriceFetchTracker = StableBTreeMap<String, PriceFetchRecord, Memory>; // Commented out as unused
 
 // Memory Manager
 thread_local! {
@@ -75,12 +85,96 @@ thread_local! {
     );
 }
 
+// Storage for Oracle prices
+thread_local! {
+    pub static ORACLE_PRICES: RefCell<OraclePriceStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(7)))
+        )
+    );
+}
+
+// Storage for loan disbursements
+thread_local! {
+    pub static DISBURSEMENTS: RefCell<DisbursementRecordStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(8)))
+        )
+    );
+}
+
+// Storage for loan repayments
+thread_local! {
+    pub static REPAYMENTS: RefCell<RepaymentStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(9)))
+        )
+    );
+}
+
+// Storage for liquidity management
+thread_local! {
+    pub static LIQUIDITY_POOL: RefCell<LiquidityPoolStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(10)))
+        )
+    );
+}
+
+thread_local! {
+    pub static INVESTOR_BALANCES: RefCell<InvestorBalanceStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(11)))
+        )
+    );
+}
+
+thread_local! {
+    pub static PROCESSED_TRANSACTIONS: RefCell<ProcessedTransactionStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(12)))
+        )
+    );
+}
+
+thread_local! {
+    pub static EMERGENCY_PAUSE: RefCell<EmergencyPauseStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(13)))
+        )
+    );
+}
+
+// Storage for disbursement records
+thread_local! {
+    pub static DISBURSEMENT_RECORDS: RefCell<DisbursementRecordStorage> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(14)))
+        )
+    );
+}
+
+// CONFIG_STORAGE is already defined above, removing duplicate
+
+// Remove duplicated storage aliases - these are redundant and causing confusion
+// Keep only the main storage definitions above
+
+// Storage for tracking last price fetch times
+thread_local! {
+    pub static PRICE_FETCH_TRACKER: RefCell<StableBTreeMap<String, PriceFetchRecord, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(15)))
+        )
+    );
+}
+
 // Token ID counters
 thread_local! {
     static NFT_TOKEN_COUNTER: RefCell<u64> = RefCell::new(0);
     static COLLATERAL_COUNTER: RefCell<u64> = RefCell::new(0);
     pub static AUDIT_LOG_COUNTER: RefCell<u64> = RefCell::new(0);
     static LOAN_COUNTER: RefCell<u64> = RefCell::new(0);
+    static DISBURSEMENT_COUNTER: RefCell<u64> = RefCell::new(0);
 }
 
 // Helper functions for token ID generation
@@ -102,6 +196,14 @@ pub fn next_collateral_id() -> u64 {
 
 pub fn next_loan_id() -> u64 {
     LOAN_COUNTER.with(|counter| {
+        let current = *counter.borrow();
+        *counter.borrow_mut() = current + 1;
+        current + 1
+    })
+}
+
+pub fn next_disbursement_id() -> u64 {
+    DISBURSEMENT_COUNTER.with(|counter| {
         let current = *counter.borrow();
         *counter.borrow_mut() = current + 1;
         current + 1
@@ -269,10 +371,15 @@ pub fn store_loan(loan: Loan) -> Result<(), String> {
     })
 }
 
-pub fn get_loan(loan_id: u64) -> Option<Loan> {
+pub fn update_loan(loan: Loan) -> Result<(), String> {
     LOANS.with(|loans| {
-        loans.borrow().get(&loan_id)
+        loans.borrow_mut().insert(loan.id, loan);
+        Ok(())
     })
+}
+
+pub fn get_loan(loan_id: u64) -> Option<Loan> {
+    LOANS.with(|loans| loans.borrow().get(&loan_id))
 }
 
 pub fn get_loans_by_borrower(borrower: Principal) -> Vec<Loan> {
@@ -378,3 +485,361 @@ pub fn liquidate_collateral(token_id: u64, loan_id: u64) -> Result<(), String> {
         }
     })
 }
+
+// Storage functions for production features
+pub fn store_disbursement_record(record: DisbursementRecord) -> Result<(), String> {
+    DISBURSEMENT_RECORDS.with(|records| {
+        records.borrow_mut().insert(record.loan_id, record);
+        Ok(())
+    })
+}
+
+pub fn get_disbursement_record(loan_id: u64) -> Option<DisbursementRecord> {
+    DISBURSEMENT_RECORDS.with(|records| records.borrow().get(&loan_id))
+}
+
+pub fn get_all_disbursement_records() -> Vec<DisbursementRecord> {
+    DISBURSEMENT_RECORDS.with(|records| {
+        records.borrow().iter().map(|(_, record)| record).collect()
+    })
+}
+
+pub fn store_repayment_record(record: RepaymentRecord) -> Result<(), String> {
+    REPAYMENTS.with(|repayments| {
+        repayments.borrow_mut().insert(record.loan_id, record);
+        Ok(())
+    })
+}
+
+pub fn update_loan_status(loan_id: u64, status: LoanStatus) -> Result<(), String> {
+    LOANS.with(|loans| {
+        let mut loans_map = loans.borrow_mut();
+        if let Some(mut loan) = loans_map.get(&loan_id) {
+            loan.status = status;
+            loans_map.insert(loan_id, loan);
+            Ok(())
+        } else {
+            Err("Loan not found".to_string())
+        }
+    })
+}
+
+pub fn update_loan_repaid_amount(loan_id: u64, amount: u64) -> Result<(), String> {
+    LOANS.with(|loans| {
+        let mut loans_map = loans.borrow_mut();
+        if let Some(mut loan) = loans_map.get(&loan_id) {
+            loan.total_repaid += amount;
+            loans_map.insert(loan_id, loan);
+            Ok(())
+        } else {
+            Err("Loan not found".to_string())
+        }
+    })
+}
+
+pub fn calculate_remaining_balance(loan_id: u64) -> Result<u64, String> {
+    LOANS.with(|loans| {
+        if let Some(loan) = loans.borrow().get(&loan_id) {
+            Ok(loan.amount_approved.saturating_sub(loan.total_repaid))
+        } else {
+            Err("Loan not found".to_string())
+        }
+    })
+}
+
+pub fn release_collateral_nft(nft_id: u64) -> Result<(), String> {
+    update_collateral_status(nft_id, CollateralStatus::Released, None);
+    Ok(())
+}
+
+// Statistics functions
+pub fn get_total_investors() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().len() as u64
+    })
+}
+
+pub fn get_total_deposits() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().iter()
+            .map(|(_, balance)| balance.total_deposited)
+            .sum()
+    })
+}
+
+pub fn get_total_withdrawals() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().iter()
+            .map(|(_, balance)| balance.total_withdrawn)
+            .sum()
+    })
+}
+
+// Enhanced Processed Transaction Functions
+
+pub fn get_all_processed_transactions() -> Vec<ProcessedTransaction> {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow().iter().map(|(_, tx)| tx).collect()
+    })
+}
+
+pub fn get_processed_transactions_by_investor(investor: Principal) -> Vec<ProcessedTransaction> {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow()
+            .iter()
+            .filter(|(_, tx)| tx.processor == investor)
+            .map(|(_, tx)| tx)
+            .collect()
+    })
+}
+
+pub fn count_processed_transactions() -> u64 {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow().len() as u64
+    })
+}
+
+// Enhanced configuration functions
+
+// Enhanced pool management functions
+
+pub fn get_pool_utilization_history() -> Vec<(u64, u64)> {
+    // This would typically store historical utilization data
+    // For now, return current utilization
+    let pool = get_liquidity_pool();
+    let utilization = if pool.total_liquidity > 0 {
+        ((pool.total_liquidity - pool.available_liquidity) * 100) / pool.total_liquidity
+    } else {
+        0
+    };
+    vec![(time(), utilization)]
+}
+
+pub fn get_investor_count() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().len() as u64
+    })
+}
+
+pub fn get_active_investor_count() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow()
+            .iter()
+            .filter(|(_, balance)| balance.balance > 0)
+            .count() as u64
+    })
+}
+
+pub fn get_total_investor_deposits() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow()
+            .iter()
+            .map(|(_, balance)| balance.total_deposited)
+            .sum()
+    })
+}
+
+pub fn get_total_investor_withdrawals() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow()
+            .iter()
+            .map(|(_, balance)| balance.total_withdrawn)
+            .sum()
+    })
+}
+
+// Pool analytics functions
+
+pub fn get_largest_investor_deposit() -> u64 {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow()
+            .iter()
+            .map(|(_, balance)| balance.total_deposited)
+            .max()
+            .unwrap_or(0)
+    })
+}
+
+pub fn get_average_investor_deposit() -> u64 {
+    let total_investors = get_investor_count();
+    if total_investors > 0 {
+        get_total_investor_deposits() / total_investors
+    } else {
+        0
+    }
+}
+
+pub fn get_pool_concentration_risk() -> u64 {
+    let pool = get_liquidity_pool();
+    let largest_deposit = get_largest_investor_deposit();
+    
+    if pool.total_liquidity > 0 {
+        (largest_deposit * 100) / pool.total_liquidity
+    } else {
+        0
+    }
+}
+
+// Cleanup and maintenance functions
+
+pub fn cleanup_old_processed_transactions(cutoff_time: u64) -> u64 {
+    let mut cleaned_count = 0;
+    
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        let keys_to_remove: Vec<u64> = transactions.borrow()
+            .iter()
+            .filter(|(_, tx)| tx.processed_at < cutoff_time)
+            .map(|(tx_id, _)| tx_id)
+            .collect();
+        
+        cleaned_count = keys_to_remove.len() as u64;
+        
+        for key in keys_to_remove {
+            transactions.borrow_mut().remove(&key);
+        }
+    });
+    
+    cleaned_count
+}
+
+pub fn get_storage_statistics() -> StorageStats {
+    let total_nfts = RWA_NFTS.with(|nfts| nfts.borrow().len() as u64);
+    let total_loans = LOANS.with(|loans| loans.borrow().len() as u64);
+    let total_users = INVESTOR_BALANCES.with(|balances| balances.borrow().len() as u64);
+    
+    // Estimate memory usage (simplified)
+    let estimated_memory = (total_nfts * 1024) + (total_loans * 2048) + (total_users * 512);
+    
+    StorageStats {
+        total_nfts,
+        total_loans,
+        total_users,
+        memory_usage_bytes: estimated_memory,
+    }
+}
+
+pub fn get_storage_stats() -> StorageStats {
+    get_storage_statistics()
+}
+
+pub fn store_commodity_price(commodity_id: String, price: CommodityPrice) -> Result<(), String> {
+    ORACLE_PRICES.with(|prices| {
+        prices.borrow_mut().insert(commodity_id, price);
+    });
+    Ok(())
+}
+
+pub fn get_stored_commodity_price(commodity_id: &str) -> Option<CommodityPrice> {
+    ORACLE_PRICES.with(|prices| {
+        prices.borrow().get(&commodity_id.to_string())
+    })
+}
+
+pub fn get_all_stored_commodity_prices() -> Vec<(String, CommodityPrice)> {
+    ORACLE_PRICES.with(|prices| {
+        prices.borrow().iter().collect()
+    })
+}
+
+pub fn update_last_price_fetch(_commodity_id: &str, _timestamp: u64) {
+    // This would store in a separate map for tracking fetch times
+    // For now, we'll use the price timestamp as the fetch time
+}
+
+pub fn get_last_price_fetch(commodity_id: &str) -> Option<u64> {
+    get_stored_commodity_price(commodity_id).map(|price| price.timestamp)
+}
+
+// Liquidity Management Storage Functions
+
+pub fn get_liquidity_pool() -> LiquidityPool {
+    LIQUIDITY_POOL.with(|pool| {
+        pool.borrow().get(&0).unwrap_or(LiquidityPool {
+            total_liquidity: 0,
+            available_liquidity: 0,
+            total_borrowed: 0,
+            total_repaid: 0,
+            utilization_rate: 0,
+            total_investors: 0,
+            apy: 0,
+            created_at: time(),
+            updated_at: time(),
+        })
+    })
+}
+
+pub fn store_liquidity_pool(pool: LiquidityPool) -> Result<(), String> {
+    LIQUIDITY_POOL.with(|p| {
+        p.borrow_mut().insert(0, pool);
+    });
+    Ok(())
+}
+
+pub fn get_investor_balance_by_principal(investor: Principal) -> Option<InvestorBalance> {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().get(&investor)
+    })
+}
+
+pub fn store_investor_balance(balance: InvestorBalance) -> Result<(), String> {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow_mut().insert(balance.investor, balance);
+    });
+    Ok(())
+}
+
+pub fn get_all_investor_balances() -> Vec<InvestorBalance> {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().iter().map(|(_, balance)| balance).collect()
+    })
+}
+
+pub fn is_transaction_processed(tx_id: u64) -> bool {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow().contains_key(&tx_id)
+    })
+}
+
+pub fn mark_transaction_processed(tx_id: u64) -> Result<(), String> {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        let processed_tx = ProcessedTransaction {
+            tx_id,
+            processed_at: time(),
+            processor: ic_cdk::caller(),
+        };
+        transactions.borrow_mut().insert(tx_id, processed_tx);
+    });
+    Ok(())
+}
+
+pub fn has_investor_deposited_before(investor: Principal) -> bool {
+    INVESTOR_BALANCES.with(|balances| {
+        balances.borrow().contains_key(&investor)
+    })
+}
+
+pub fn set_emergency_pause(paused: bool) -> Result<(), String> {
+    EMERGENCY_PAUSE.with(|pause| {
+        pause.borrow_mut().insert(0, paused);
+    });
+    Ok(())
+}
+
+pub fn is_emergency_paused() -> bool {
+    EMERGENCY_PAUSE.with(|pause| {
+        pause.borrow().get(&0).unwrap_or(false)
+    })
+}
+
+pub fn get_processed_transaction(tx_id: u64) -> Option<ProcessedTransaction> {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow().get(&tx_id)
+    })
+}
+
+pub fn remove_processed_transaction(tx_id: u64) -> Option<ProcessedTransaction> {
+    PROCESSED_TRANSACTIONS.with(|transactions| {
+        transactions.borrow_mut().remove(&tx_id)
+    })
+}
+
