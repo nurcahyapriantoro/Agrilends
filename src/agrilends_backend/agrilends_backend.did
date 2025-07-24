@@ -1,0 +1,737 @@
+type Role = variant {
+    Farmer;
+    Investor;
+};
+
+type User = record {
+    id: principal;
+    role: Role;
+    created_at: nat64;
+    btc_address: opt text;
+    is_active: bool;
+    updated_at: nat64;
+    email: opt text;
+    phone: opt text;
+    profile_completed: bool;
+};
+
+type UserUpdateRequest = record {
+    btc_address: opt text;
+    email: opt text;
+    phone: opt text;
+};
+
+type UserResult = variant {
+    Ok: User;
+    Err: text;
+};
+
+type BoolResult = variant {
+    Ok: bool;
+    Err: text;
+};
+
+type UserStats = record {
+    total_users: nat64;
+    total_farmers: nat64;
+    total_investors: nat64;
+    active_users: nat64;
+    inactive_users: nat64;
+    users_with_btc_address: nat64;
+    completed_profiles: nat64;
+};
+
+type MetadataValue = variant {
+    Text: text;
+    Nat: nat64;
+    Bool: bool;
+    Principal: principal;
+};
+
+type LoanStatus = variant {
+    PendingApplication;
+    PendingApproval;
+    Approved;
+    Active;
+    Repaid;
+    Defaulted;
+};
+
+// Loan Repayment Types
+type PaymentType = variant {
+    Principal;
+    Interest;
+    Mixed;
+};
+
+type Payment = record {
+    amount: nat64;
+    timestamp: nat64;
+    payment_type: PaymentType;
+    transaction_id: opt text;
+};
+
+type PaymentBreakdown = record {
+    principal_amount: nat64;
+    interest_amount: nat64;
+    protocol_fee_amount: nat64;
+    total_amount: nat64;
+};
+
+type LoanRepaymentSummary = record {
+    loan_id: nat64;
+    borrower: principal;
+    total_debt: nat64;
+    principal_outstanding: nat64;
+    interest_outstanding: nat64;
+    total_repaid: nat64;
+    remaining_balance: nat64;
+    next_payment_due: opt nat64;
+    is_overdue: bool;
+    days_overdue: nat64;
+};
+
+type RepaymentPlan = record {
+    loan_id: nat64;
+    total_amount_due: nat64;
+    principal_amount: nat64;
+    interest_amount: nat64;
+    protocol_fee: nat64;
+    due_date: nat64;
+    minimum_payment: nat64;
+};
+
+type RepaymentResponse = record {
+    success: bool;
+    message: text;
+    transaction_id: opt text;
+    new_loan_status: LoanStatus;
+    remaining_balance: nat64;
+    collateral_released: bool;
+};
+
+type RepaymentStatistics = record {
+    total_loans: nat64;
+    active_loans: nat64;
+    repaid_loans: nat64;
+    defaulted_loans: nat64;
+    total_repaid_amount: nat64;
+    total_outstanding_amount: nat64;
+    average_repayment_time: nat64;
+};
+
+type RepaymentRecord = record {
+    loan_id: nat64;
+    payer: principal;
+    amount: nat64;
+    ckbtc_block_index: nat64;
+    timestamp: nat64;
+    payment_breakdown: PaymentBreakdown;
+};
+
+// Results for loan repayment
+type LoanRepaymentSummaryResult = variant {
+    Ok: LoanRepaymentSummary;
+    Err: text;
+};
+
+type RepaymentPlanResult = variant {
+    Ok: RepaymentPlan;
+    Err: text;
+};
+
+type RepaymentResponseResult = variant {
+    Ok: RepaymentResponse;
+    Err: text;
+};
+
+type PaymentHistoryResult = variant {
+    Ok: vec Payment;
+    Err: text;
+};
+
+type RepaymentRecordsResult = variant {
+    Ok: vec RepaymentRecord;
+    Err: text;
+};
+
+type RepaymentStatisticsResult = variant {
+    Ok: RepaymentStatistics;
+    Err: text;
+};
+
+// Liquidation Types
+type LiquidationReason = variant {
+    Overdue;
+    HealthRatio;
+    AdminForced;
+    SystemFailure;
+};
+
+type LiquidationRecord = record {
+    loan_id: nat64;
+    liquidated_at: nat64;
+    liquidated_by: principal;
+    collateral_nft_id: nat64;
+    outstanding_debt: nat64;
+    collateral_value: nat64;
+    liquidation_reason: LiquidationReason;
+    ecdsa_signature: opt text;
+    liquidation_wallet: principal;
+};
+
+type LiquidationSummary = record {
+    total_liquidations: nat64;
+    total_liquidated_debt: nat64;
+    total_liquidated_collateral_value: nat64;
+    liquidations_this_month: nat64;
+    recovery_rate: float64;
+};
+
+type LiquidationEligibilityCheck = record {
+    loan_id: nat64;
+    is_eligible: bool;
+    reason: text;
+    days_overdue: nat64;
+    health_ratio: float64;
+    grace_period_expired: bool;
+};
+
+type LiquidationStatistics = record {
+    total_loans: nat64;
+    active_loans: nat64;
+    repaid_loans: nat64;
+    defaulted_loans: nat64;
+    total_liquidated_amount: nat64;
+    total_liquidated_collateral: nat64;
+    average_liquidation_time: nat64;
+    liquidation_recovery_rate: float64;
+};
+
+// Governance Types
+type ProposalType = variant {
+    ProtocolParameterUpdate;
+    AdminRoleUpdate;
+    CanisterUpgrade;
+    EmergencyAction;
+    SystemConfiguration;
+    TreasuryManagement;
+};
+
+type ProposalStatus = variant {
+    Pending;
+    Active;
+    Approved;
+    Rejected;
+    Executed;
+    Expired;
+};
+
+type VoteChoice = variant {
+    Yes;
+    No;
+    Abstain;
+};
+
+type Proposal = record {
+    id: nat64;
+    proposer: principal;
+    proposal_type: ProposalType;
+    title: text;
+    description: text;
+    execution_payload: opt blob;
+    created_at: nat64;
+    voting_deadline: nat64;
+    execution_deadline: nat64;
+    status: ProposalStatus;
+    yes_votes: nat64;
+    no_votes: nat64;
+    abstain_votes: nat64;
+    total_voting_power: nat64;
+    quorum_threshold: nat64;
+    approval_threshold: nat64;
+    executed_at: opt nat64;
+    executed_by: opt principal;
+};
+
+type Vote = record {
+    voter: principal;
+    proposal_id: nat64;
+    choice: VoteChoice;
+    voting_power: nat64;
+    voted_at: nat64;
+    reason: opt text;
+};
+
+type ParameterType = variant {
+    Percentage;
+    Amount;
+    Duration;
+    Boolean;
+    Principal;
+};
+
+type ProtocolParameter = record {
+    key: text;
+    current_value: nat64;
+    proposed_value: opt nat64;
+    value_type: ParameterType;
+    min_value: opt nat64;
+    max_value: opt nat64;
+    description: text;
+    last_updated: nat64;
+    updated_by: principal;
+};
+
+type AdminRoleType = variant {
+    SuperAdmin;
+    ProtocolAdmin;
+    TreasuryAdmin;
+    RiskAdmin;
+    LiquidationAdmin;
+    OracleAdmin;
+    EmergencyAdmin;
+};
+
+type Permission = variant {
+    ManageParameters;
+    ManageAdmins;
+    EmergencyStop;
+    ManageTreasury;
+    ManageLiquidation;
+    ManageOracle;
+    ViewMetrics;
+    ExecuteProposals;
+};
+
+type AdminRole = record {
+    admin_principal: principal;
+    role_type: AdminRoleType;
+    granted_at: nat64;
+    granted_by: principal;
+    expires_at: opt nat64;
+    permissions: vec Permission;
+    is_active: bool;
+};
+
+type GovernanceStats = record {
+    total_proposals: nat64;
+    active_proposals: nat64;
+    executed_proposals: nat64;
+    total_votes_cast: nat64;
+    total_voting_power: nat64;
+    average_participation_rate: nat64;
+    last_proposal_id: nat64;
+};
+
+// Governance Results
+type GovernanceResult = variant {
+    Ok: nat64;
+    Err: text;
+};
+
+type GovernanceTextResult = variant {
+    Ok: text;
+    Err: text;
+};
+
+type ProtocolParameterResult = variant {
+    Ok: ProtocolParameter;
+    Err: text;
+};
+
+// Results for liquidation
+type LiquidationResult = variant {
+    Ok: text;
+    Err: text;
+};
+
+type LiquidationRecordResult = variant {
+    Ok: LiquidationRecord;
+    Err: text;
+};
+
+type LiquidationRecordsResult = variant {
+    Ok: vec LiquidationRecord;
+    Err: text;
+};
+
+type LiquidationEligibilityResult = variant {
+    Ok: LiquidationEligibilityCheck;
+    Err: text;
+};
+
+type BulkLiquidationResult = variant {
+    Ok: vec record { nat64; LiquidationResult };
+    Err: text;
+};
+
+type LiquidationMetrics = record {
+    total_liquidations: nat64;
+    total_liquidated_debt: nat64;
+    total_liquidated_collateral_value: nat64;
+    liquidations_this_month: nat64;
+    recovery_rate: float64;
+    loans_eligible_for_liquidation: nat64;
+    timestamp: nat64;
+};
+
+type LiquidationMetricsResult = variant {
+    Ok: LiquidationMetrics;
+    Err: text;
+};
+
+type EarlyRepaymentBenefitResult = variant {
+    Ok: nat64;
+    Err: text;
+};
+
+type TextResult = variant {
+    Ok: text;
+    Err: text;
+};
+
+type Account = record {
+    owner: principal;
+    subaccount: opt vec nat8;
+};
+
+type RWANFTData = record {
+    token_id: nat64;
+    owner: principal;
+    metadata: vec record { text; MetadataValue };
+    created_at: nat64;
+    updated_at: nat64;
+    is_locked: bool;
+    loan_id: opt nat64;
+};
+
+type TransferRequest = record {
+    from: opt Account;
+    to: Account;
+    token_id: nat64;
+    memo: opt vec nat8;
+    created_at_time: opt nat64;
+};
+
+type CollateralStatus = variant {
+    Available;
+    Locked;
+    Liquidated;
+    Released;
+};
+
+type CollateralRecord = record {
+    collateral_id: nat64;
+    nft_token_id: nat64;
+    owner: principal;
+    loan_id: opt nat64;
+    valuation_idr: nat64;
+    asset_description: text;
+    legal_doc_hash: text;
+    status: CollateralStatus;
+    created_at: nat64;
+    updated_at: nat64;
+};
+
+type RWANFTResult = variant {
+    Ok: RWANFTData;
+    Err: text;
+};
+
+type CollateralResult = variant {
+    Ok: CollateralRecord;
+    Err: text;
+};
+
+type TransferResult = variant {
+    Ok;
+    Err: text;
+};
+
+type NFTStats = record {
+    total_nfts: nat64;
+    locked_nfts: nat64;
+    available_collateral: nat64;
+    liquidated_collateral: nat64;
+};
+
+// Dashboard Support Types
+type NFTSummary = record {
+    token_id: nat64;
+    owner: principal;
+    metadata_title: text;
+    metadata_description: text;
+    commodity_type: text;
+    valuation_idr: nat64;
+    quantity: nat64;
+    is_locked: bool;
+    loan_id: opt nat64;
+    created_at: nat64;
+};
+
+type LoanSummary = record {
+    id: nat64;
+    borrower: principal;
+    nft_id: nat64;
+    amount_requested: nat64;
+    amount_approved: nat64;
+    status: LoanStatus;
+    interest_rate: nat64;
+    total_repaid: nat64;
+    remaining_balance: nat64;
+    health_ratio: float64;
+    created_at: nat64;
+    due_date: opt nat64;
+    is_overdue: bool;
+};
+
+type FarmerStats = record {
+    total_loans_applied: nat64;
+    total_loans_active: nat64;
+    total_loans_completed: nat64;
+    total_amount_borrowed: nat64;
+    total_amount_repaid: nat64;
+    average_loan_health: float64;
+    total_nfts_owned: nat64;
+    total_nfts_locked: nat64;
+};
+
+type FarmerDashboardData = record {
+    user_details: User;
+    active_loans: vec LoanSummary;
+    historical_loans: vec LoanSummary;
+    owned_nfts: vec NFTSummary;
+    dashboard_stats: FarmerStats;
+};
+
+type InvestorStats = record {
+    days_invested: nat64;
+    total_deposits: nat64;
+    total_withdrawals: nat64;
+    current_portfolio_value: nat64;
+    roi_percentage: float64;
+    participation_percentage: float64;
+};
+
+type PoolStats = record {
+    total_liquidity: nat64;
+    available_liquidity: nat64;
+    total_borrowed: nat64;
+    total_repaid: nat64;
+    utilization_rate: nat64;
+    total_investors: nat64;
+    apy: nat64;
+    created_at: nat64;
+    updated_at: nat64;
+};
+
+type InvestmentRecord = record {
+    transaction_type: text;
+    amount: nat64;
+    timestamp: nat64;
+    pool_apy_at_time: float64;
+    balance_after: nat64;
+};
+
+type InvestorDashboardData = record {
+    user_details: User;
+    current_balance: nat64;
+    total_invested: nat64;
+    total_earnings: nat64;
+    estimated_annual_return: float64;
+    pool_stats: PoolStats;
+    investment_history: vec InvestmentRecord;
+    dashboard_stats: InvestorStats;
+};
+
+type SystemOverview = record {
+    total_users: nat64;
+    total_farmers: nat64;
+    total_investors: nat64;
+    total_loans: nat64;
+    total_nfts: nat64;
+    platform_uptime_days: nat64;
+    last_updated: nat64;
+};
+
+type LiquidityMetrics = record {
+    total_pool_value: nat64;
+    available_liquidity: nat64;
+    total_borrowed: nat64;
+    utilization_rate: float64;
+    current_apy: float64;
+    total_investors: nat64;
+    average_investor_balance: nat64;
+};
+
+type LoanMetrics = record {
+    total_loans: nat64;
+    active_loans: nat64;
+    completed_loans: nat64;
+    defaulted_loans: nat64;
+    total_amount_disbursed: nat64;
+    total_amount_repaid: nat64;
+    average_loan_amount: nat64;
+    default_rate: float64;
+};
+
+type UserMetrics = record {
+    total_registered_users: nat64;
+    active_users: nat64;
+    completed_profiles: nat64;
+    users_with_btc_address: nat64;
+    new_users_this_month: nat64;
+    user_retention_rate: float64;
+};
+
+type RiskMetrics = record {
+    loans_at_risk: nat64;
+    total_collateral_value: nat64;
+    average_health_ratio: float64;
+    concentration_risk_score: float64;
+    liquidity_risk_score: float64;
+    overdue_loans: nat64;
+};
+
+type AdminDashboardData = record {
+    system_overview: SystemOverview;
+    liquidity_metrics: LiquidityMetrics;
+    loan_metrics: LoanMetrics;
+    user_metrics: UserMetrics;
+    risk_metrics: RiskMetrics;
+};
+
+type PublicStats = record {
+    total_users: nat64;
+    total_farmers: nat64;
+    total_investors: nat64;
+    total_liquidity: nat64;
+    total_loans_disbursed: nat64;
+    current_apy: float64;
+    platform_uptime_days: nat64;
+};
+
+type DashboardStatus = record {
+    farmer_dashboard_available: bool;
+    investor_dashboard_available: bool;
+    admin_dashboard_available: bool;
+    last_updated: nat64;
+    system_healthy: bool;
+};
+
+// Dashboard Results
+type FarmerDashboardResult = variant {
+    Ok: FarmerDashboardData;
+    Err: text;
+};
+
+type InvestorDashboardResult = variant {
+    Ok: InvestorDashboardData;
+    Err: text;
+};
+
+type AdminDashboardResult = variant {
+    Ok: AdminDashboardData;
+    Err: text;
+};
+
+service : {
+    // User management functions
+    register_as_farmer: () -> (UserResult);
+    register_as_investor: () -> (UserResult);
+    get_user: () -> (UserResult) query;
+    update_btc_address: (text) -> (UserResult);
+    update_user_profile: (UserUpdateRequest) -> (UserResult);
+    deactivate_user: () -> (UserResult);
+    reactivate_user: () -> (UserResult);
+    get_user_by_id: (principal) -> (UserResult) query;
+    get_user_stats: () -> (UserStats) query;
+    is_farmer: (principal) -> (bool) query;
+    is_investor: (principal) -> (bool) query;
+    is_user_active: (principal) -> (bool) query;
+    has_completed_profile: (principal) -> (bool) query;
+    get_users_by_role: (Role) -> (vec User) query;
+    get_active_users: () -> (vec User) query;
+    get_all_users: () -> (vec User) query;
+    
+    // RWA NFT management functions
+    mint_rwa_nft: (principal, vec record { text; MetadataValue }) -> (variant { Ok: nat64; Err: text });
+    get_nft_details: (nat64) -> (opt record { principal; vec record { text; MetadataValue } }) query;
+    get_rwa_nft_data: (nat64) -> (RWANFTResult) query;
+    icrc7_transfer: (vec TransferRequest) -> (vec TransferResult);
+    lock_nft_as_collateral: (nat64, nat64) -> (TransferResult);
+    unlock_nft_from_collateral: (nat64) -> (TransferResult);
+    get_user_nfts: (principal) -> (vec RWANFTData) query;
+    get_user_collateral_records: (principal) -> (vec CollateralRecord) query;
+    get_collateral_by_nft_token_id: (nat64) -> (opt CollateralRecord) query;
+    get_available_collateral: (principal) -> (vec CollateralRecord) query;
+    liquidate_collateral: (nat64) -> (TransferResult);
+    get_nft_statistics: () -> (NFTStats) query;
+    get_all_nfts: () -> (vec RWANFTData) query;
+    get_all_collateral_records: () -> (vec CollateralRecord) query;
+    get_collateral_by_status: (CollateralStatus) -> (vec CollateralRecord) query;
+    
+    // Loan Repayment Functions
+    repay_loan: (nat64, nat64) -> (RepaymentResponseResult);
+    get_loan_repayment_summary: (nat64) -> (LoanRepaymentSummaryResult) query;
+    get_repayment_plan: (nat64) -> (RepaymentPlanResult) query;
+    get_loan_payment_history: (nat64) -> (PaymentHistoryResult) query;
+    get_loan_repayment_records: (nat64) -> (RepaymentRecordsResult) query;
+    check_repayment_eligibility: (nat64) -> (BoolResult) query;
+    calculate_early_repayment_benefits: (nat64) -> (EarlyRepaymentBenefitResult) query;
+    emergency_repayment: (nat64, nat64, text) -> (TextResult);
+    get_repayment_statistics: () -> (RepaymentStatisticsResult) query;
+    calculate_total_debt_with_interest: (nat64) -> (record { nat64; nat64; nat64 }) query;
+    calculate_payment_breakdown: (nat64, nat64) -> (PaymentBreakdown) query;
+    
+    // Liquidation Functions
+    trigger_liquidation: (nat64) -> (LiquidationResult);
+    check_liquidation_eligibility: (nat64) -> (LiquidationEligibilityResult) query;
+    get_loans_eligible_for_liquidation: () -> (vec LiquidationEligibilityCheck) query;
+    get_liquidation_record: (nat64) -> (opt LiquidationRecord) query;
+    get_all_liquidation_records: () -> (LiquidationRecordsResult) query;
+    get_liquidation_statistics: () -> (LiquidationSummary) query;
+    trigger_bulk_liquidation: (vec nat64) -> (vec record { nat64; LiquidationResult });
+    emergency_liquidation: (nat64, text) -> (LiquidationResult);
+    get_liquidation_metrics: () -> (LiquidationMetricsResult) query;
+    
+    // Governance Functions
+    create_proposal: (ProposalType, text, text, opt blob) -> (GovernanceResult);
+    vote_on_proposal: (nat64, VoteChoice, opt text) -> (GovernanceTextResult);
+    execute_proposal: (nat64) -> (GovernanceTextResult);
+    set_protocol_parameter: (text, nat64) -> (TextResult);
+    get_protocol_parameter: (text) -> (ProtocolParameterResult) query;
+    get_all_protocol_parameters: () -> (vec ProtocolParameter) query;
+    grant_admin_role: (principal, AdminRoleType, vec Permission, opt nat64) -> (TextResult);
+    revoke_admin_role: (principal) -> (TextResult);
+    transfer_admin_role: (principal) -> (TextResult);
+    get_admin_role: (principal) -> (opt AdminRole) query;
+    get_all_admin_roles: () -> (vec AdminRole) query;
+    get_proposal: (nat64) -> (opt Proposal) query;
+    get_proposals: (nat64, nat64) -> (vec Proposal) query;
+    get_proposal_votes: (nat64) -> (vec Vote) query;
+    get_governance_stats: () -> (GovernanceStats) query;
+    emergency_stop: () -> (TextResult);
+    resume_operations: () -> (TextResult);
+    
+    // Dashboard Functions
+    get_farmer_dashboard: () -> (FarmerDashboardResult) query;
+    get_investor_dashboard: () -> (InvestorDashboardResult) query;
+    get_admin_dashboard: () -> (AdminDashboardResult) query;
+    get_public_stats: () -> (PublicStats) query;
+    refresh_dashboard_cache: () -> (TextResult);
+    get_dashboard_status: () -> (DashboardStatus) query;
+    
+    // ICRC-7 compliance functions
+    icrc7_collection_metadata: () -> (vec record { text; MetadataValue }) query;
+    icrc7_token_metadata: (vec nat64) -> (vec opt vec record { text; MetadataValue }) query;
+    icrc7_balance_of: (vec Account) -> (vec nat64) query;
+    icrc7_owner_of: (vec nat64) -> (vec opt Account) query;
+    
+    // System functions
+    get_canister_id: () -> (principal) query;
+    get_caller: () -> (principal) query;
+    health_check: () -> (text) query;
+    __get_candid_interface_tmp_hack: () -> (text) query;
+}

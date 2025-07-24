@@ -1,0 +1,33 @@
+[package]
+name = "agrilends_backend"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+name = "agrilends_backend"
+path = "src/agrilends_backend/src/lib.rs"
+
+[dependencies]
+candid = "0.10"
+ic-cdk = "0.18.5"
+ic-cdk-macros = "0.18.5"
+ic-stable-structures = "0.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.141"
+ic-cdk-timers = "0.12.2"
+ic-ledger-types = "0.15.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+debug = false
+overflow-checks = false
+lto = true

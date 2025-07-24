@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends - Automated Maintenance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .metric-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: white;
+        }
+
+        .status-healthy { background-color: #27ae60; }
+        .status-warning { background-color: #f39c12; }
+        .status-critical { background-color: #e74c3c; }
+        .status-inactive { background-color: #95a5a6; }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .config-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .logs-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+        }
+
+        .log-success { border-left-color: #27ae60; }
+        .log-warning { border-left-color: #f39c12; }
+        .log-error { border-left-color: #e74c3c; }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .task-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .task-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .icon-success { background-color: #27ae60; }
+        .icon-error { background-color: #e74c3c; }
+        .icon-pending { background-color: #f39c12; }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Automated Maintenance Dashboard</h1>
+            <p>Monitor and control the Agrilends automated maintenance system</p>
+        </div>
+
+        <!-- System Status Overview -->
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3>📊 System Health</h3>
+                <div class="metric">
+                    <span class="metric-label">Overall Status</span>
+                    <span class="metric-value status-healthy" id="overall-status">Healthy</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Emergency Stop</span>
+                    <span class="metric-value status-inactive" id="emergency-status">Inactive</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Maintenance Mode</span>
+                    <span class="metric-value status-inactive" id="maintenance-status">Inactive</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Last Heartbeat</span>
+                    <span class="metric-value status-healthy" id="last-heartbeat">Just now</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>💓 Heartbeat Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Executions</span>
+                    <span class="metric-value status-healthy" id="total-executions">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Success Rate</span>
+                    <span class="metric-value status-healthy" id="success-rate">0%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Avg Execution Time</span>
+                    <span class="metric-value status-healthy" id="avg-execution-time">0ms</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Peak Execution Time</span>
+                    <span class="metric-value status-warning" id="peak-execution-time">0ms</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>💰 Resource Monitoring</h3>
+                <div class="metric">
+                    <span class="metric-label">Cycles Balance</span>
+                    <span class="metric-value status-healthy" id="cycles-balance">0T</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value status-healthy" id="memory-usage">0MB</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Loans</span>
+                    <span class="metric-value status-healthy" id="active-loans">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Oracle Status</span>
+                    <span class="metric-value status-healthy" id="oracle-status">Healthy</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔄 Task Status</h3>
+                <div class="task-status" id="task-status">
+                    <div class="task-item">
+                        <div class="task-icon icon-success"></div>
+                        <span>Price Updates</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-icon icon-success"></div>
+                        <span>Loan Monitoring</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-icon icon-success"></div>
+                        <span>Cycles Monitoring</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-icon icon-success"></div>
+                        <span>Auto Cleanup</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-icon icon-success"></div>
+                        <span>Pool Maintenance</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-icon icon-pending"></div>
+                        <span>Auto Liquidation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3>🎛️ Control Panel</h3>
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="refreshData()">
+                    🔄 Refresh Data
+                </button>
+                <button class="btn btn-success" onclick="resumeOperations()">
+                    ▶️ Resume Operations
+                </button>
+                <button class="btn btn-warning" onclick="pauseHeartbeat()">
+                    ⏸️ Pause Heartbeat
+                </button>
+                <button class="btn btn-danger" onclick="emergencyStop()">
+                    🛑 Emergency Stop
+                </button>
+                <button class="btn btn-primary" onclick="resetCircuitBreakers()">
+                    🔧 Reset Circuit Breakers
+                </button>
+                <button class="btn btn-primary" onclick="forceCleanup()">
+                    🧹 Force Cleanup
+                </button>
+            </div>
+
+            <div class="config-section">
+                <h4>⚙️ Heartbeat Configuration</h4>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="price-updates" checked>
+                        <label for="price-updates">Price Updates</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="loan-monitoring" checked>
+                        <label for="loan-monitoring">Loan Monitoring</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="cycles-monitoring" checked>
+                        <label for="cycles-monitoring">Cycles Monitoring</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="auto-cleanup" checked>
+                        <label for="auto-cleanup">Auto Cleanup</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="pool-maintenance" checked>
+                        <label for="pool-maintenance">Pool Maintenance</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="auto-liquidation">
+                        <label for="auto-liquidation">Auto Liquidation</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="memory-monitoring" checked>
+                        <label for="memory-monitoring">Memory Monitoring</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="oracle-monitoring" checked>
+                        <label for="oracle-monitoring">Oracle Monitoring</label>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="updateConfig()">
+                    💾 Update Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity Logs -->
+        <div class="logs-section">
+            <h3>📝 Recent Activity Logs</h3>
+            <div id="activity-logs">
+                <div class="log-entry log-success">
+                    [2025-07-24 10:30:15] Heartbeat completed: 8 successful, 0 failed, 45ms execution time
+                </div>
+                <div class="log-entry log-success">
+                    [2025-07-24 10:29:15] Successfully auto-updated rice price
+                </div>
+                <div class="log-entry log-warning">
+                    [2025-07-24 10:28:15] WARNING: Canister cycles running low: 750B cycles
+                </div>
+                <div class="log-entry log-success">
+                    [2025-07-24 10:27:15] Pool maintenance completed: Pool health check passed
+                </div>
+                <div class="log-entry log-success">
+                    [2025-07-24 10:26:15] Cleaned 150 old audit log entries
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated connection to Agrilends canister
+        class AgrilendsMaintenanceAPI {
+            constructor() {
+                this.canisterId = 'rrkah-fqaaa-aaaah-qcwkg-cai'; // Replace with actual canister ID
+                this.agent = null;
+                this.actor = null;
+            }
+
+            async init() {
+                try {
+                    // In a real implementation, this would connect to the IC
+                    console.log('Connecting to Agrilends canister...');
+                    // this.agent = await HttpAgent.create();
+                    // this.actor = Actor.createActor(idlFactory, { agent: this.agent, canisterId: this.canisterId });
+                    return true;
+                } catch (error) {
+                    console.error('Failed to connect to canister:', error);
+                    return false;
+                }
+            }
+
+            async getHealthStatus() {
+                try {
+                    // Simulated API call
+                    return {
+                        is_healthy: true,
+                        emergency_stop: false,
+                        maintenance_mode: false,
+                        oracle_status: true,
+                        ckbtc_integration: true,
+                        memory_usage: 512000000, // 512MB
+                        total_loans: 25,
+                        active_loans: 18,
+                        last_heartbeat: Date.now() * 1000000, // Convert to nanoseconds
+                    };
+                } catch (error) {
+                    console.error('Failed to get health status:', error);
+                    return null;
+                }
+            }
+
+            async getHeartbeatMetrics() {
+                try {
+                    // Simulated API call
+                    return {
+                        total_executions: 1247,
+                        successful_executions: 1240,
+                        failed_executions: 7,
+                        average_execution_time: 45000000, // 45ms in nanoseconds
+                        peak_execution_time: 120000000, // 120ms in nanoseconds
+                        last_execution_time: Date.now() * 1000000,
+                        tasks_completed: {
+                            'price_update': 890,
+                            'loan_monitoring': 1247,
+                            'cycles_monitoring': 1247,
+                            'auto_cleanup': 156,
+                            'pool_maintenance': 1247,
+                        },
+                        last_maintenance_tasks: [
+                            'price_update: ✓',
+                            'loan_monitoring: ✓',
+                            'cycles_monitoring: ✓',
+                            'auto_cleanup: ✓',
+                            'pool_maintenance: ✓',
+                            'auto_liquidation: ✗'
+                        ]
+                    };
+                } catch (error) {
+                    console.error('Failed to get heartbeat metrics:', error);
+                    return null;
+                }
+            }
+
+            async getHeartbeatConfig() {
+                try {
+                    return {
+                        enabled: true,
+                        maintenance_mode: false,
+                        price_update_enabled: true,
+                        loan_monitoring_enabled: true,
+                        cycles_monitoring_enabled: true,
+                        auto_cleanup_enabled: true,
+                        pool_maintenance_enabled: true,
+                        auto_liquidation_enabled: false,
+                        memory_monitoring_enabled: true,
+                        oracle_monitoring_enabled: true,
+                    };
+                } catch (error) {
+                    console.error('Failed to get heartbeat config:', error);
+                    return null;
+                }
+            }
+
+            async updateHeartbeatConfig(config) {
+                try {
+                    console.log('Updating heartbeat configuration:', config);
+                    // return await this.actor.update_heartbeat_config(config);
+                    return 'Configuration updated successfully';
+                } catch (error) {
+                    console.error('Failed to update configuration:', error);
+                    throw error;
+                }
+            }
+
+            async emergencyPauseHeartbeat() {
+                try {
+                    console.log('Emergency pause requested');
+                    // return await this.actor.emergency_pause_heartbeat();
+                    return 'Heartbeat operations paused successfully';
+                } catch (error) {
+                    console.error('Failed to pause heartbeat:', error);
+                    throw error;
+                }
+            }
+
+            async resumeHeartbeatOperations() {
+                try {
+                    console.log('Resume operations requested');
+                    // return await this.actor.resume_heartbeat_operations();
+                    return 'Heartbeat operations resumed successfully';
+                } catch (error) {
+                    console.error('Failed to resume operations:', error);
+                    throw error;
+                }
+            }
+
+            async resetCircuitBreakers() {
+                try {
+                    console.log('Reset circuit breakers requested');
+                    // return await this.actor.reset_circuit_breakers();
+                    return 'Circuit breakers reset successfully';
+                } catch (error) {
+                    console.error('Failed to reset circuit breakers:', error);
+                    throw error;
+                }
+            }
+        }
+
+        // Initialize API
+        const api = new AgrilendsMaintenanceAPI();
+        let refreshInterval;
+
+        // Utility functions
+        function formatBytes(bytes) {
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 Bytes';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function formatCycles(cycles) {
+            if (cycles >= 1e12) return Math.round(cycles / 1e12 * 100) / 100 + 'T';
+            if (cycles >= 1e9) return Math.round(cycles / 1e9 * 100) / 100 + 'B';
+            if (cycles >= 1e6) return Math.round(cycles / 1e6 * 100) / 100 + 'M';
+            return cycles.toString();
+        }
+
+        function formatDuration(nanoseconds) {
+            const milliseconds = nanoseconds / 1000000;
+            if (milliseconds >= 1000) return Math.round(milliseconds) + 'ms';
+            return Math.round(milliseconds * 100) / 100 + 'ms';
+        }
+
+        function timeAgo(timestamp) {
+            const now = Date.now() * 1000000; // Convert to nanoseconds
+            const diff = (now - timestamp) / 1000000000; // Convert to seconds
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return Math.floor(diff / 60) + ' minutes ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+            return Math.floor(diff / 86400) + ' days ago';
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Main functions
+        async function refreshData() {
+            const button = event.target;
+            const originalText = button.textContent;
+            button.innerHTML = '<div class="loading"></div> Refreshing...';
+            button.disabled = true;
+
+            try {
+                // Get health status
+                const healthStatus = await api.getHealthStatus();
+                if (healthStatus) {
+                    updateHealthStatus(healthStatus);
+                }
+
+                // Get heartbeat metrics
+                const metrics = await api.getHeartbeatMetrics();
+                if (metrics) {
+                    updateHeartbeatMetrics(metrics);
+                }
+
+                // Get configuration
+                const config = await api.getHeartbeatConfig();
+                if (config) {
+                    updateConfigForm(config);
+                }
+
+                showAlert('Data refreshed successfully');
+            } catch (error) {
+                showAlert('Failed to refresh data: ' + error.message, 'danger');
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function updateHealthStatus(status) {
+            // Overall status
+            const overallStatus = document.getElementById('overall-status');
+            overallStatus.textContent = status.is_healthy ? 'Healthy' : 'Unhealthy';
+            overallStatus.className = `metric-value ${status.is_healthy ? 'status-healthy' : 'status-critical'}`;
+
+            // Emergency stop
+            const emergencyStatus = document.getElementById('emergency-status');
+            emergencyStatus.textContent = status.emergency_stop ? 'Active' : 'Inactive';
+            emergencyStatus.className = `metric-value ${status.emergency_stop ? 'status-critical' : 'status-inactive'}`;
+
+            // Maintenance mode
+            const maintenanceStatus = document.getElementById('maintenance-status');
+            maintenanceStatus.textContent = status.maintenance_mode ? 'Active' : 'Inactive';
+            maintenanceStatus.className = `metric-value ${status.maintenance_mode ? 'status-warning' : 'status-inactive'}`;
+
+            // Last heartbeat
+            document.getElementById('last-heartbeat').textContent = timeAgo(status.last_heartbeat);
+
+            // Cycles balance
+            const cyclesBalance = document.getElementById('cycles-balance');
+            cyclesBalance.textContent = formatCycles(5000000000000); // Simulated 5T cycles
+            cyclesBalance.className = 'metric-value status-healthy';
+
+            // Memory usage
+            document.getElementById('memory-usage').textContent = formatBytes(status.memory_usage);
+
+            // Active loans
+            document.getElementById('active-loans').textContent = status.active_loans;
+
+            // Oracle status
+            const oracleStatus = document.getElementById('oracle-status');
+            oracleStatus.textContent = status.oracle_status ? 'Healthy' : 'Unhealthy';
+            oracleStatus.className = `metric-value ${status.oracle_status ? 'status-healthy' : 'status-critical'}`;
+        }
+
+        function updateHeartbeatMetrics(metrics) {
+            document.getElementById('total-executions').textContent = metrics.total_executions.toLocaleString();
+            
+            const successRate = Math.round((metrics.successful_executions / metrics.total_executions) * 100);
+            const successRateElement = document.getElementById('success-rate');
+            successRateElement.textContent = successRate + '%';
+            successRateElement.className = `metric-value ${successRate >= 95 ? 'status-healthy' : successRate >= 85 ? 'status-warning' : 'status-critical'}`;
+            
+            document.getElementById('avg-execution-time').textContent = formatDuration(metrics.average_execution_time);
+            document.getElementById('peak-execution-time').textContent = formatDuration(metrics.peak_execution_time);
+
+            // Update task status
+            updateTaskStatus(metrics.last_maintenance_tasks);
+        }
+
+        function updateTaskStatus(tasks) {
+            const taskStatusContainer = document.getElementById('task-status');
+            taskStatusContainer.innerHTML = '';
+
+            tasks.forEach(task => {
+                const [taskName, status] = task.split(': ');
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-item';
+                
+                const icon = document.createElement('div');
+                icon.className = `task-icon ${status === '✓' ? 'icon-success' : 'icon-error'}`;
+                
+                const label = document.createElement('span');
+                label.textContent = taskName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                taskItem.appendChild(icon);
+                taskItem.appendChild(label);
+                taskStatusContainer.appendChild(taskItem);
+            });
+        }
+
+        function updateConfigForm(config) {
+            document.getElementById('price-updates').checked = config.price_update_enabled;
+            document.getElementById('loan-monitoring').checked = config.loan_monitoring_enabled;
+            document.getElementById('cycles-monitoring').checked = config.cycles_monitoring_enabled;
+            document.getElementById('auto-cleanup').checked = config.auto_cleanup_enabled;
+            document.getElementById('pool-maintenance').checked = config.pool_maintenance_enabled;
+            document.getElementById('auto-liquidation').checked = config.auto_liquidation_enabled;
+            document.getElementById('memory-monitoring').checked = config.memory_monitoring_enabled;
+            document.getElementById('oracle-monitoring').checked = config.oracle_monitoring_enabled;
+        }
+
+        async function updateConfig() {
+            const config = {
+                enabled: true,
+                maintenance_mode: false,
+                price_update_enabled: document.getElementById('price-updates').checked,
+                loan_monitoring_enabled: document.getElementById('loan-monitoring').checked,
+                cycles_monitoring_enabled: document.getElementById('cycles-monitoring').checked,
+                auto_cleanup_enabled: document.getElementById('auto-cleanup').checked,
+                pool_maintenance_enabled: document.getElementById('pool-maintenance').checked,
+                auto_liquidation_enabled: document.getElementById('auto-liquidation').checked,
+                auto_liquidation_threshold_days: 45,
+                memory_monitoring_enabled: document.getElementById('memory-monitoring').checked,
+                oracle_monitoring_enabled: document.getElementById('oracle-monitoring').checked,
+                treasury_monitoring_enabled: true,
+            };
+
+            try {
+                const result = await api.updateHeartbeatConfig(config);
+                showAlert('Configuration updated successfully');
+            } catch (error) {
+                showAlert('Failed to update configuration: ' + error.message, 'danger');
+            }
+        }
+
+        async function pauseHeartbeat() {
+            if (!confirm('Are you sure you want to pause the heartbeat system?')) return;
+
+            try {
+                const result = await api.emergencyPauseHeartbeat();
+                showAlert('Heartbeat paused successfully', 'warning');
+                await refreshData();
+            } catch (error) {
+                showAlert('Failed to pause heartbeat: ' + error.message, 'danger');
+            }
+        }
+
+        async function resumeOperations() {
+            try {
+                const result = await api.resumeHeartbeatOperations();
+                showAlert('Operations resumed successfully');
+                await refreshData();
+            } catch (error) {
+                showAlert('Failed to resume operations: ' + error.message, 'danger');
+            }
+        }
+
+        async function emergencyStop() {
+            if (!confirm('Are you sure you want to trigger an emergency stop? This will halt all system operations.')) return;
+
+            try {
+                const result = await api.emergencyPauseHeartbeat(); // Using same function for demo
+                showAlert('Emergency stop activated', 'warning');
+                await refreshData();
+            } catch (error) {
+                showAlert('Failed to activate emergency stop: ' + error.message, 'danger');
+            }
+        }
+
+        async function resetCircuitBreakers() {
+            if (!confirm('Are you sure you want to reset all circuit breakers?')) return;
+
+            try {
+                const result = await api.resetCircuitBreakers();
+                showAlert('Circuit breakers reset successfully');
+            } catch (error) {
+                showAlert('Failed to reset circuit breakers: ' + error.message, 'danger');
+            }
+        }
+
+        async function forceCleanup() {
+            if (!confirm('Are you sure you want to force a cleanup operation?')) return;
+
+            try {
+                // Simulated cleanup operation
+                showAlert('Cleanup operation initiated');
+            } catch (error) {
+                showAlert('Failed to initiate cleanup: ' + error.message, 'danger');
+            }
+        }
+
+        // Initialize dashboard
+        async function init() {
+            await api.init();
+            await refreshData();
+            
+            // Set up auto-refresh every 30 seconds
+            refreshInterval = setInterval(refreshData, 30000);
+        }
+
+        // Start the dashboard
+        init().catch(console.error);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

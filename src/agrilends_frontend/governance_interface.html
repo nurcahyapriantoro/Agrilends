@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends - Governance & Administration</title>
+    <style>
+        /* ========== GOVERNANCE INTERFACE STYLES ========== */
+        
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --danger-color: #dc2626;
+            --warning-color: #d97706;
+            --info-color: #0284c7;
+            --light-bg: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* User Info */
+        .user-card {
+            background: var(--light-bg);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .user-principal {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-role {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .admin-role {
+            color: var(--success-color);
+        }
+
+        .user-role {
+            color: var(--text-secondary);
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            color: white;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: var(--light-bg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Parameters Grid */
+        .parameters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .parameters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .parameter-card {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .parameter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .parameter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+
+        .parameter-header h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .parameter-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .parameter-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .parameter-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .parameter-bounds {
+            font-size: 0.75rem;
+            color: var(--warning-color);
+            background: #fef3c7;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Proposals */
+        .proposals-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .proposals-list {
+            space-y: 1rem;
+        }
+
+        .proposal-card {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .proposal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .proposal-header h4 {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .proposal-type {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .proposal-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .vote-bar {
+            height: 0.5rem;
+            background: #e5e7eb;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            display: flex;
+        }
+
+        .yes-votes {
+            background: var(--success-color);
+        }
+
+        .no-votes {
+            background: var(--danger-color);
+        }
+
+        .vote-numbers {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .vote-numbers span {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .proposal-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .proposal-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Admin Roles */
+        .admin-roles-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-role-card {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .role-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .role-principal {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .role-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .role-type.superadmin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .role-type.protocoladmin {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .role-type.treasuryadmin {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .permission {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        .role-meta {
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--light-bg);
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        /* Loading and Notifications */
+        .loading-indicator {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            display: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Emergency Controls */
+        .emergency-controls {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .emergency-controls h4 {
+            color: var(--danger-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .emergency-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Hide elements based on user role */
+        .admin-only {
+            display: none;
+        }
+
+        .super-admin-only {
+            display: none;
+        }
+
+        /* No data states */
+        .no-proposals {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            background: var(--light-bg);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+
+            .parameters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .proposal-actions,
+            .emergency-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🌾 Agrilends - Governance</div>
+                <div class="header-actions">
+                    <div id="userInfo"></div>
+                    <button class="btn btn-outline" id="refreshData">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="loading-indicator">
+            Loading...
+        </div>
+
+        <!-- Emergency Controls (Super Admin Only) -->
+        <div class="emergency-controls super-admin-only">
+            <h4>🚨 Emergency Controls</h4>
+            <div class="emergency-actions">
+                <button class="btn btn-danger" id="emergencyStop">
+                    🛑 Emergency Stop
+                </button>
+                <button class="btn btn-success" id="resumeOperations">
+                    ▶️ Resume Operations
+                </button>
+                <button class="btn btn-warning" id="transferAdmin">
+                    👑 Transfer Admin Role
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard">
+            <!-- Governance Statistics -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>📊 Governance Statistics</h3>
+                </div>
+                <div class="section-content">
+                    <div id="governanceStats"></div>
+                </div>
+            </div>
+
+            <!-- Protocol Parameters -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>⚙️ Protocol Parameters</h3>
+                </div>
+                <div class="section-content">
+                    <div id="protocolParameters"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Proposals -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3>🗳️ Active Proposals</h3>
+            </div>
+            <div class="section-content">
+                <div id="proposalsList"></div>
+            </div>
+        </div>
+
+        <!-- Admin Roles (Admin Only) -->
+        <div class="section-card admin-only" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h3>👑 Admin Roles</h3>
+            </div>
+            <div class="section-content">
+                <div id="adminRoles"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Parameter Update Modal -->
+    <div id="parameterUpdateModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Update Protocol Parameter</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="parameterUpdateForm">
+                    <div class="form-group">
+                        <label for="parameterKey">Parameter:</label>
+                        <select id="parameterKey" required>
+                            <option value="">Select parameter...</option>
+                            <option value="loan_to_value_ratio">Loan-to-Value Ratio</option>
+                            <option value="base_interest_rate">Base Interest Rate</option>
+                            <option value="liquidation_threshold">Liquidation Threshold</option>
+                            <option value="protocol_fee_rate">Protocol Fee Rate</option>
+                            <option value="grace_period_days">Grace Period Days</option>
+                            <option value="min_collateral_value">Min Collateral Value</option>
+                            <option value="max_loan_duration_days">Max Loan Duration</option>
+                            <option value="max_utilization_rate">Max Utilization Rate</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="parameterValue">New Value:</label>
+                        <input type="number" id="parameterValue" required>
+                        <small id="parameterHelp"></small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="governance.hideModal('parameterUpdateModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Parameter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Proposal Modal -->
+    <div id="createProposalModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Proposal</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="createProposalForm">
+                    <div class="form-group">
+                        <label for="proposalType">Proposal Type:</label>
+                        <select id="proposalType" required>
+                            <option value="">Select type...</option>
+                            <option value="ProtocolParameterUpdate">Protocol Parameter Update</option>
+                            <option value="AdminRoleUpdate">Admin Role Update</option>
+                            <option value="SystemConfiguration">System Configuration</option>
+                            <option value="EmergencyAction">Emergency Action</option>
+                            <option value="TreasuryManagement">Treasury Management</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="proposalTitle">Title:</label>
+                        <input type="text" id="proposalTitle" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="proposalDescription">Description:</label>
+                        <textarea id="proposalDescription" required rows="4" maxlength="1000"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="executionPayload">Execution Payload (optional):</label>
+                        <input type="text" id="executionPayload" placeholder="e.g., parameter_key:new_value">
+                        <small>For parameter updates, use format: parameter_key:value</small>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="governance.hideModal('createProposalModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Proposal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grant Role Modal -->
+    <div id="grantRoleModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Grant Admin Role</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="grantRoleForm">
+                    <div class="form-group">
+                        <label for="rolePrincipal">Principal:</label>
+                        <input type="text" id="rolePrincipal" required placeholder="Enter principal ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="roleType">Role Type:</label>
+                        <select id="roleType" required>
+                            <option value="">Select role...</option>
+                            <option value="ProtocolAdmin">Protocol Admin</option>
+                            <option value="TreasuryAdmin">Treasury Admin</option>
+                            <option value="RiskAdmin">Risk Admin</option>
+                            <option value="LiquidationAdmin">Liquidation Admin</option>
+                            <option value="OracleAdmin">Oracle Admin</option>
+                            <option value="EmergencyAdmin">Emergency Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Permissions:</label>
+                        <div class="permissions-checkboxes">
+                            <label><input type="checkbox" name="permissions" value="ManageParameters"> Manage Parameters</label>
+                            <label><input type="checkbox" name="permissions" value="ManageAdmins"> Manage Admins</label>
+                            <label><input type="checkbox" name="permissions" value="EmergencyStop"> Emergency Stop</label>
+                            <label><input type="checkbox" name="permissions" value="ManageTreasury"> Manage Treasury</label>
+                            <label><input type="checkbox" name="permissions" value="ManageLiquidation"> Manage Liquidation</label>
+                            <label><input type="checkbox" name="permissions" value="ManageOracle"> Manage Oracle</label>
+                            <label><input type="checkbox" name="permissions" value="ViewMetrics"> View Metrics</label>
+                            <label><input type="checkbox" name="permissions" value="ExecuteProposals"> Execute Proposals</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="roleExpiry">Expiry Date (optional):</label>
+                        <input type="datetime-local" id="roleExpiry">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="governance.hideModal('grantRoleModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Grant Role</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Styles -->
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .form-group small {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        .permissions-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .permissions-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="governance_frontend.js"></script>
+    <script>
+        // Additional JavaScript for modal handling and form submissions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Parameter update form
+            const parameterForm = document.getElementById('parameterUpdateForm');
+            if (parameterForm) {
+                parameterForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const key = document.getElementById('parameterKey').value;
+                    const value = parseInt(document.getElementById('parameterValue').value);
+                    
+                    if (governance) {
+                        await governance.updateParameter(key, value);
+                        governance.hideModal('parameterUpdateModal');
+                        parameterForm.reset();
+                    }
+                });
+            }
+
+            // Create proposal form
+            const proposalForm = document.getElementById('createProposalForm');
+            if (proposalForm) {
+                proposalForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const type = document.getElementById('proposalType').value;
+                    const title = document.getElementById('proposalTitle').value;
+                    const description = document.getElementById('proposalDescription').value;
+                    const payload = document.getElementById('executionPayload').value;
+
+                    if (governance && governance.actor) {
+                        try {
+                            governance.showLoading('Creating proposal...');
+                            const result = await governance.actor.create_proposal(
+                                { [type]: null },
+                                title,
+                                description,
+                                payload ? [new TextEncoder().encode(payload)] : []
+                            );
+                            
+                            if ('Ok' in result) {
+                                governance.showSuccess('Proposal created successfully');
+                                await governance.loadActiveProposals();
+                                governance.hideModal('createProposalModal');
+                                proposalForm.reset();
+                            } else {
+                                governance.showError(`Failed to create proposal: ${result.Err}`);
+                            }
+                        } catch (error) {
+                            console.error('Failed to create proposal:', error);
+                            governance.showError('Failed to create proposal');
+                        } finally {
+                            governance.hideLoading();
+                        }
+                    }
+                });
+            }
+
+            // Grant role form
+            const grantRoleForm = document.getElementById('grantRoleForm');
+            if (grantRoleForm) {
+                grantRoleForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const principal = document.getElementById('rolePrincipal').value;
+                    const roleType = document.getElementById('roleType').value;
+                    const permissions = Array.from(document.querySelectorAll('input[name="permissions"]:checked'))
+                        .map(cb => ({ [cb.value]: null }));
+                    const expiry = document.getElementById('roleExpiry').value;
+
+                    if (governance && governance.actor) {
+                        try {
+                            governance.showLoading('Granting role...');
+                            const result = await governance.actor.grant_admin_role(
+                                principal,
+                                { [roleType]: null },
+                                permissions,
+                                expiry ? [new Date(expiry).getTime() * 1_000_000] : []
+                            );
+                            
+                            if ('Ok' in result) {
+                                governance.showSuccess('Role granted successfully');
+                                await governance.loadAdminRoles();
+                                governance.hideModal('grantRoleModal');
+                                grantRoleForm.reset();
+                            } else {
+                                governance.showError(`Failed to grant role: ${result.Err}`);
+                            }
+                        } catch (error) {
+                            console.error('Failed to grant role:', error);
+                            governance.showError('Failed to grant role');
+                        } finally {
+                            governance.hideLoading();
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

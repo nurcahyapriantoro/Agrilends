@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends - Advanced Heartbeat Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 3em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .status-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.5em;
+        }
+
+        .status-healthy { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .status-warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .status-critical { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .status-info { background: linear-gradient(135deg, #3498db, #2980b9); }
+
+        .card-title {
+            color: #2c3e50;
+            font-size: 1.4em;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .metric-item {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+            transform: scale(1.02);
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            color: #2c3e50;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .controls-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            color: #2c3e50;
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+            margin-right: 15px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .config-item {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .config-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .config-label {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #ddd;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .control-btn.success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .control-btn.warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .control-btn.danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .task-timeline {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        .timeline-item.success {
+            background: rgba(39, 174, 96, 0.1);
+        }
+
+        .timeline-item.success::before {
+            background: #27ae60;
+        }
+
+        .timeline-item.failed {
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .timeline-item.failed::before {
+            background: #e74c3c;
+        }
+
+        .timeline-item:hover {
+            transform: translateX(10px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-status {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-name {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .task-details {
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+
+        .task-time {
+            color: #95a5a6;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .real-time-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            background: #27ae60;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(39, 174, 96, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); }
+        }
+
+        .circuit-breaker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .circuit-item {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .circuit-item:hover {
+            background: rgba(0, 0, 0, 0.05);
+            transform: scale(1.02);
+        }
+
+        .circuit-status {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .circuit-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .circuit-state {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .status-overview {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="real-time-indicator">
+        <div class="pulse-dot"></div>
+        <span>Live • Auto-refresh: <span id="refreshTimer">30s</span></span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Advanced Heartbeat Dashboard</h1>
+            <p class="subtitle">Comprehensive monitoring and control for Agrilends automated maintenance system</p>
+            <div style="margin-top: 20px; color: #95a5a6; font-size: 0.95em;">
+                Last updated: <span id="lastUpdate">--</span> • 
+                System uptime: <span id="systemUptime">--</span>
+            </div>
+        </div>
+
+        <div class="status-overview">
+            <div class="status-card">
+                <div class="card-header">
+                    <div class="status-icon status-healthy">🏥</div>
+                    <h3 class="card-title">System Health</h3>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Status</div>
+                        <div class="metric-value" id="systemStatus">Healthy</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Maintenance</div>
+                        <div class="metric-value" id="maintenanceMode">Disabled</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Emergency</div>
+                        <div class="metric-value" id="emergencyStop">Normal</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Last Beat</div>
+                        <div class="metric-value" id="lastHeartbeat">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="card-header">
+                    <div class="status-icon status-info">📊</div>
+                    <h3 class="card-title">Performance Metrics</h3>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Executions</div>
+                        <div class="metric-value" id="totalExecutions">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Success Rate</div>
+                        <div class="metric-value" id="successRate">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Avg Time</div>
+                        <div class="metric-value" id="avgExecutionTime">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Peak Time</div>
+                        <div class="metric-value" id="peakExecutionTime">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="card-header">
+                    <div class="status-icon status-warning">⚡</div>
+                    <h3 class="card-title">Resource Monitor</h3>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Memory</div>
+                        <div class="metric-value" id="memoryUsage">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Cycles</div>
+                        <div class="metric-value" id="cyclesBalance">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Active Loans</div>
+                        <div class="metric-value" id="activeLoans">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Oracle</div>
+                        <div class="metric-value" id="oracleStatus">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-card">
+                <div class="card-header">
+                    <div class="status-icon status-critical">🔄</div>
+                    <h3 class="card-title">Circuit Breakers</h3>
+                </div>
+                <div class="circuit-breaker-grid">
+                    <div class="circuit-item">
+                        <div class="circuit-status">🟢</div>
+                        <div class="circuit-name">Price Update</div>
+                        <div class="circuit-state" id="priceUpdateCB">Closed</div>
+                    </div>
+                    <div class="circuit-item">
+                        <div class="circuit-status">🟢</div>
+                        <div class="circuit-name">Loan Monitor</div>
+                        <div class="circuit-state" id="loanMonitoringCB">Closed</div>
+                    </div>
+                    <div class="circuit-item">
+                        <div class="circuit-status">🟢</div>
+                        <div class="circuit-name">Pool Maintenance</div>
+                        <div class="circuit-state" id="poolMaintenanceCB">Closed</div>
+                    </div>
+                    <div class="circuit-item">
+                        <div class="circuit-status">🟢</div>
+                        <div class="circuit-name">Auto Liquidation</div>
+                        <div class="circuit-state" id="autoLiquidationCB">Closed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2 class="section-title">⚙️ Configuration & Controls</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <span class="config-label">Heartbeat System</span>
+                    <div class="toggle-switch active" id="toggleHeartbeat">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Price Updates</span>
+                    <div class="toggle-switch active" id="togglePriceUpdates">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Loan Monitoring</span>
+                    <div class="toggle-switch active" id="toggleLoanMonitoring">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Memory Monitoring</span>
+                    <div class="toggle-switch active" id="toggleMemoryMonitoring">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Auto Cleanup</span>
+                    <div class="toggle-switch active" id="toggleAutoCleanup">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Pool Maintenance</span>
+                    <div class="toggle-switch active" id="togglePoolMaintenance">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Auto Liquidation</span>
+                    <div class="toggle-switch" id="toggleAutoLiquidation">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Treasury Monitoring</span>
+                    <div class="toggle-switch active" id="toggleTreasuryMonitoring">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-grid">
+                <button class="control-btn" id="refreshData">
+                    🔄 Refresh Data
+                </button>
+                <button class="control-btn success" id="resumeHeartbeat">
+                    ▶️ Resume Operations
+                </button>
+                <button class="control-btn warning" id="pauseHeartbeat">
+                    ⏸️ Pause Heartbeat
+                </button>
+                <button class="control-btn danger" id="emergencyPause">
+                    🚨 Emergency Stop
+                </button>
+                <button class="control-btn" id="resetCircuitBreakers">
+                    🔧 Reset Breakers
+                </button>
+                <button class="control-btn" id="saveConfig">
+                    💾 Save Config
+                </button>
+                <button class="control-btn" id="exportMetrics">
+                    📊 Export Metrics
+                </button>
+                <button class="control-btn" id="systemReport">
+                    📄 Generate Report
+                </button>
+            </div>
+        </div>
+
+        <div class="task-timeline">
+            <h2 class="section-title">📋 Recent Maintenance Tasks</h2>
+            <div id="taskHistory">
+                <div class="timeline-item success">
+                    <div class="task-status" style="background: #27ae60;">✓</div>
+                    <div class="task-info">
+                        <div class="task-name">Oracle Price Update</div>
+                        <div class="task-details">Successfully updated 3 commodity prices (rice, corn, wheat)</div>
+                    </div>
+                    <div class="task-time">2 min ago</div>
+                </div>
+                
+                <div class="timeline-item success">
+                    <div class="task-status" style="background: #27ae60;">✓</div>
+                    <div class="task-info">
+                        <div class="task-name">Loan Monitoring</div>
+                        <div class="task-details">Monitored 127 active loans, found 3 liquidation candidates</div>
+                    </div>
+                    <div class="task-time">2 min ago</div>
+                </div>
+                
+                <div class="timeline-item success">
+                    <div class="task-status" style="background: #27ae60;">✓</div>
+                    <div class="task-info">
+                        <div class="task-name">Memory Cleanup</div>
+                        <div class="task-details">Cleaned 245 old audit logs, optimized storage</div>
+                    </div>
+                    <div class="task-time">2 min ago</div>
+                </div>
+                
+                <div class="timeline-item success">
+                    <div class="task-status" style="background: #3498db;">ℹ</div>
+                    <div class="task-info">
+                        <div class="task-name">Cycles Monitoring</div>
+                        <div class="task-details">Cycles balance healthy: 5.7T remaining</div>
+                    </div>
+                    <div class="task-time">2 min ago</div>
+                </div>
+                
+                <div class="timeline-item failed">
+                    <div class="task-status" style="background: #e74c3c;">✗</div>
+                    <div class="task-info">
+                        <div class="task-name">Pool Maintenance</div>
+                        <div class="task-details">Failed to connect to liquidity pool - network timeout</div>
+                    </div>
+                    <div class="task-time">5 min ago</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration state management
+        let heartbeatConfig = {
+            enabled: true,
+            price_update_enabled: true,
+            loan_monitoring_enabled: true,
+            cycles_monitoring_enabled: true,
+            memory_monitoring_enabled: true,
+            auto_cleanup_enabled: true,
+            pool_maintenance_enabled: true,
+            auto_liquidation_enabled: false,
+            treasury_monitoring_enabled: true
+        };
+
+        // Dashboard initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            setupEventListeners();
+            startAutoRefresh();
+            updateRefreshTimer();
+        });
+
+        function initializeDashboard() {
+            // Initialize toggles based on config
+            Object.keys(heartbeatConfig).forEach(key => {
+                const toggleId = key.replace('_enabled', '').replace('enabled', 'Heartbeat');
+                const camelCase = 'toggle' + toggleId.charAt(0).toUpperCase() + 
+                    toggleId.slice(1).replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+                
+                const toggle = document.getElementById(camelCase);
+                if (toggle && heartbeatConfig[key]) {
+                    toggle.classList.add('active');
+                }
+            });
+
+            // Load initial data
+            refreshDashboardData();
+        }
+
+        function setupEventListeners() {
+            // Toggle switches
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    updateConfigFromToggles();
+                });
+            });
+
+            // Control buttons
+            document.getElementById('refreshData').addEventListener('click', refreshDashboardData);
+            document.getElementById('resumeHeartbeat').addEventListener('click', resumeHeartbeat);
+            document.getElementById('pauseHeartbeat').addEventListener('click', pauseHeartbeat);
+            document.getElementById('emergencyPause').addEventListener('click', emergencyPause);
+            document.getElementById('resetCircuitBreakers').addEventListener('click', resetCircuitBreakers);
+            document.getElementById('saveConfig').addEventListener('click', saveConfiguration);
+            document.getElementById('exportMetrics').addEventListener('click', exportMetrics);
+            document.getElementById('systemReport').addEventListener('click', generateSystemReport);
+        }
+
+        function updateConfigFromToggles() {
+            heartbeatConfig.enabled = document.getElementById('toggleHeartbeat').classList.contains('active');
+            heartbeatConfig.price_update_enabled = document.getElementById('togglePriceUpdates').classList.contains('active');
+            heartbeatConfig.loan_monitoring_enabled = document.getElementById('toggleLoanMonitoring').classList.contains('active');
+            heartbeatConfig.memory_monitoring_enabled = document.getElementById('toggleMemoryMonitoring').classList.contains('active');
+            heartbeatConfig.auto_cleanup_enabled = document.getElementById('toggleAutoCleanup').classList.contains('active');
+            heartbeatConfig.pool_maintenance_enabled = document.getElementById('togglePoolMaintenance').classList.contains('active');
+            heartbeatConfig.auto_liquidation_enabled = document.getElementById('toggleAutoLiquidation').classList.contains('active');
+            heartbeatConfig.treasury_monitoring_enabled = document.getElementById('toggleTreasuryMonitoring').classList.contains('active');
+        }
+
+        async function refreshDashboardData() {
+            try {
+                // Simulate API calls to canister functions
+                await updateSystemHealth();
+                await updatePerformanceMetrics();
+                await updateResourceMonitoring();
+                await updateCircuitBreakers();
+                updateLastUpdateTime();
+                
+                console.log('Dashboard data refreshed successfully');
+            } catch (error) {
+                console.error('Failed to refresh dashboard data:', error);
+                showNotification('Failed to refresh data', 'error');
+            }
+        }
+
+        async function updateSystemHealth() {
+            // Simulate fetching system health data
+            document.getElementById('systemStatus').textContent = 'Healthy';
+            document.getElementById('maintenanceMode').textContent = 'Disabled';
+            document.getElementById('emergencyStop').textContent = 'Normal';
+            document.getElementById('lastHeartbeat').textContent = formatTimeAgo(Date.now() - 30000);
+        }
+
+        async function updatePerformanceMetrics() {
+            // Simulate fetching performance metrics
+            document.getElementById('totalExecutions').textContent = '1,247';
+            document.getElementById('successRate').textContent = '98.4%';
+            document.getElementById('avgExecutionTime').textContent = '234ms';
+            document.getElementById('peakExecutionTime').textContent = '1.2s';
+        }
+
+        async function updateResourceMonitoring() {
+            // Simulate resource monitoring data
+            document.getElementById('memoryUsage').textContent = '2.1GB';
+            document.getElementById('cyclesBalance').textContent = '5.7T';
+            document.getElementById('activeLoans').textContent = '127';
+            document.getElementById('oracleStatus').textContent = 'Online';
+        }
+
+        async function updateCircuitBreakers() {
+            // Simulate circuit breaker status
+            document.getElementById('priceUpdateCB').textContent = 'Closed';
+            document.getElementById('loanMonitoringCB').textContent = 'Closed';
+            document.getElementById('poolMaintenanceCB').textContent = 'Closed';
+            document.getElementById('autoLiquidationCB').textContent = 'Closed';
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+            
+            // Calculate uptime (simulate)
+            const uptime = '3d 14h 23m';
+            document.getElementById('systemUptime').textContent = uptime;
+        }
+
+        function formatTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            
+            if (minutes < 1) return 'Just now';
+            if (minutes === 1) return '1 min ago';
+            if (minutes < 60) return `${minutes} min ago`;
+            
+            const hours = Math.floor(minutes / 60);
+            if (hours === 1) return '1 hour ago';
+            if (hours < 24) return `${hours} hours ago`;
+            
+            const days = Math.floor(hours / 24);
+            if (days === 1) return '1 day ago';
+            return `${days} days ago`;
+        }
+
+        async function resumeHeartbeat() {
+            try {
+                showNotification('Resuming heartbeat operations...', 'info');
+                // Call canister function: resume_heartbeat_operations
+                await simulateCanisterCall('resume_heartbeat_operations');
+                showNotification('Heartbeat operations resumed successfully', 'success');
+                refreshDashboardData();
+            } catch (error) {
+                showNotification('Failed to resume heartbeat operations', 'error');
+            }
+        }
+
+        async function pauseHeartbeat() {
+            try {
+                showNotification('Pausing heartbeat operations...', 'info');
+                // Call canister function: emergency_pause_heartbeat
+                await simulateCanisterCall('emergency_pause_heartbeat');
+                showNotification('Heartbeat operations paused successfully', 'success');
+                refreshDashboardData();
+            } catch (error) {
+                showNotification('Failed to pause heartbeat operations', 'error');
+            }
+        }
+
+        async function emergencyPause() {
+            if (confirm('⚠️ Are you sure you want to emergency pause ALL heartbeat operations?\n\nThis will stop all automated maintenance tasks immediately.')) {
+                try {
+                    showNotification('Activating emergency pause...', 'warning');
+                    await simulateCanisterCall('emergency_pause_heartbeat');
+                    showNotification('Emergency pause activated successfully', 'success');
+                    refreshDashboardData();
+                } catch (error) {
+                    showNotification('Failed to activate emergency pause', 'error');
+                }
+            }
+        }
+
+        async function resetCircuitBreakers() {
+            if (confirm('Reset all circuit breakers to closed state?')) {
+                try {
+                    showNotification('Resetting circuit breakers...', 'info');
+                    await simulateCanisterCall('reset_circuit_breakers');
+                    showNotification('Circuit breakers reset successfully', 'success');
+                    refreshDashboardData();
+                } catch (error) {
+                    showNotification('Failed to reset circuit breakers', 'error');
+                }
+            }
+        }
+
+        async function saveConfiguration() {
+            try {
+                showNotification('Saving configuration...', 'info');
+                await simulateCanisterCall('update_heartbeat_config', [heartbeatConfig]);
+                showNotification('Configuration saved successfully', 'success');
+            } catch (error) {
+                showNotification('Failed to save configuration', 'error');
+            }
+        }
+
+        async function exportMetrics() {
+            try {
+                showNotification('Exporting metrics...', 'info');
+                const metrics = await simulateCanisterCall('get_heartbeat_metrics');
+                
+                // Create downloadable file
+                const dataStr = JSON.stringify(metrics, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `agrilends-heartbeat-metrics-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                showNotification('Metrics exported successfully', 'success');
+            } catch (error) {
+                showNotification('Failed to export metrics', 'error');
+            }
+        }
+
+        async function generateSystemReport() {
+            try {
+                showNotification('Generating system report...', 'info');
+                await simulateCanisterCall('get_system_maintenance_report');
+                showNotification('System report generated successfully', 'success');
+            } catch (error) {
+                showNotification('Failed to generate system report', 'error');
+            }
+        }
+
+        function startAutoRefresh() {
+            setInterval(refreshDashboardData, 30000); // Refresh every 30 seconds
+        }
+
+        function updateRefreshTimer() {
+            let countdown = 30;
+            setInterval(() => {
+                countdown--;
+                if (countdown <= 0) {
+                    countdown = 30;
+                }
+                document.getElementById('refreshTimer').textContent = `${countdown}s`;
+            }, 1000);
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+                z-index: 1001;
+                max-width: 300px;
+                font-weight: 600;
+                transform: translateX(350px);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Auto remove
+            setTimeout(() => {
+                notification.style.transform = 'translateX(350px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        async function simulateCanisterCall(method, args = []) {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            
+            // Simulate occasional failures
+            if (Math.random() < 0.05) {
+                throw new Error(`Canister call failed: ${method}`);
+            }
+            
+            console.log(`Canister call: ${method}`, args);
+            return { success: true, data: {} };
+        }
+
+        // Simulate real-time metric updates
+        function simulateRealTimeUpdates() {
+            setInterval(() => {
+                // Randomly update some metrics
+                const cyclesValues = ['5.7T', '5.6T', '5.8T', '5.9T', '6.0T'];
+                const memoryValues = ['2.1GB', '2.0GB', '2.2GB', '1.9GB', '2.3GB'];
+                const loanValues = ['127', '128', '126', '129', '125'];
+                
+                document.getElementById('cyclesBalance').textContent = 
+                    cyclesValues[Math.floor(Math.random() * cyclesValues.length)];
+                document.getElementById('memoryUsage').textContent = 
+                    memoryValues[Math.floor(Math.random() * memoryValues.length)];
+                document.getElementById('activeLoans').textContent = 
+                    loanValues[Math.floor(Math.random() * loanValues.length)];
+            }, 15000);
+        }
+
+        // Start real-time simulation after initial load
+        setTimeout(simulateRealTimeUpdates, 5000);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        refreshDashboardData();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        saveConfiguration();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

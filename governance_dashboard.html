@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends - Governance & Administration Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .governance-icon { background: linear-gradient(45deg, #ff6b6b, #ffa8a8); }
+        .parameters-icon { background: linear-gradient(45deg, #4ecdc4, #44a08d); }
+        .proposals-icon { background: linear-gradient(45deg, #45b7d1, #96c93d); }
+        .admin-icon { background: linear-gradient(45deg, #f093fb, #f5576c); }
+        .system-icon { background: linear-gradient(45deg, #4facfe, #00f2fe); }
+
+        .card h3 {
+            color: #333;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4facfe;
+            margin: 15px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff6b6b, #ffa8a8);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffd93d, #ff6b6b);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #6BCF7F, #4D9A6A);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active { background: #4CAF50; }
+        .status-inactive { background: #f44336; }
+        .status-warning { background: #ff9800; }
+
+        .parameter-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .parameter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .parameter-item:hover {
+            background: #f8f9fa;
+        }
+
+        .parameter-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .parameter-value {
+            color: #4facfe;
+            font-weight: bold;
+        }
+
+        .proposal-item {
+            border-left: 4px solid #4facfe;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .proposal-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .proposal-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .admin-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .admin-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .admin-role {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .error {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Governance & Administration</h1>
+            <p>Comprehensive protocol management and governance dashboard</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Governance Stats Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon governance-icon">📊</div>
+                    <h3>Governance Overview</h3>
+                </div>
+                <div id="governance-stats">
+                    <div class="loading">Loading governance statistics...</div>
+                </div>
+            </div>
+
+            <!-- Protocol Parameters Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon parameters-icon">⚙️</div>
+                    <h3>Protocol Parameters</h3>
+                </div>
+                <div id="protocol-parameters">
+                    <div class="loading">Loading parameters...</div>
+                </div>
+                <div class="actions">
+                    <button class="btn" onclick="openParameterModal()">Update Parameters</button>
+                    <button class="btn btn-warning" onclick="setMaintenanceMode(true)">Maintenance Mode</button>
+                </div>
+            </div>
+
+            <!-- Active Proposals Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon proposals-icon">📋</div>
+                    <h3>Active Proposals</h3>
+                </div>
+                <div id="active-proposals">
+                    <div class="loading">Loading proposals...</div>
+                </div>
+                <div class="actions">
+                    <button class="btn" onclick="openProposalModal()">Create Proposal</button>
+                    <button class="btn" onclick="loadProposals()">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Admin Management Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon admin-icon">👥</div>
+                    <h3>Admin Management</h3>
+                </div>
+                <div id="admin-roles">
+                    <div class="loading">Loading admin roles...</div>
+                </div>
+                <div class="actions">
+                    <button class="btn" onclick="openAdminModal()">Manage Admins</button>
+                    <button class="btn btn-danger" onclick="emergencyStop()">Emergency Stop</button>
+                </div>
+            </div>
+
+            <!-- System Status Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon system-icon">🔧</div>
+                    <h3>System Status</h3>
+                </div>
+                <div id="system-status">
+                    <div class="loading">Loading system status...</div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-success" onclick="resumeOperations()">Resume Operations</button>
+                    <button class="btn" onclick="loadSystemStatus()">Check Status</button>
+                </div>
+            </div>
+
+            <!-- Recent Activity Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon governance-icon">📝</div>
+                    <h3>Recent Activity</h3>
+                </div>
+                <div id="recent-activity">
+                    <div class="loading">Loading recent activity...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Parameter Update Modal -->
+    <div id="parameterModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('parameterModal')">&times;</span>
+            <h2>Update Protocol Parameter</h2>
+            <form id="parameterForm">
+                <div class="form-group">
+                    <label for="paramKey">Parameter Key:</label>
+                    <select id="paramKey" required>
+                        <option value="">Select Parameter</option>
+                        <option value="loan_to_value_ratio">Loan-to-Value Ratio</option>
+                        <option value="base_apr">Base APR</option>
+                        <option value="liquidation_threshold">Liquidation Threshold</option>
+                        <option value="grace_period_days">Grace Period (Days)</option>
+                        <option value="max_utilization_rate">Max Utilization Rate</option>
+                        <option value="protocol_fee_rate">Protocol Fee Rate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="paramValue">New Value:</label>
+                    <input type="number" id="paramValue" required>
+                </div>
+                <div class="form-group">
+                    <label for="paramReason">Reason:</label>
+                    <textarea id="paramReason" rows="3" placeholder="Explain why this change is needed"></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn">Update Parameter</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal('parameterModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Proposal Creation Modal -->
+    <div id="proposalModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('proposalModal')">&times;</span>
+            <h2>Create New Proposal</h2>
+            <form id="proposalForm">
+                <div class="form-group">
+                    <label for="proposalType">Proposal Type:</label>
+                    <select id="proposalType" required>
+                        <option value="">Select Type</option>
+                        <option value="ProtocolParameterUpdate">Protocol Parameter Update</option>
+                        <option value="AdminRoleUpdate">Admin Role Update</option>
+                        <option value="SystemConfiguration">System Configuration</option>
+                        <option value="EmergencyAction">Emergency Action</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="proposalTitle">Title:</label>
+                    <input type="text" id="proposalTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="proposalDescription">Description:</label>
+                    <textarea id="proposalDescription" rows="4" required></textarea>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn">Create Proposal</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal('proposalModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Management Modal -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('adminModal')">&times;</span>
+            <h2>Manage Admin Roles</h2>
+            <form id="adminForm">
+                <div class="form-group">
+                    <label for="adminPrincipal">Principal ID:</label>
+                    <input type="text" id="adminPrincipal" required placeholder="Enter principal ID">
+                </div>
+                <div class="form-group">
+                    <label for="adminRole">Role Type:</label>
+                    <select id="adminRole" required>
+                        <option value="">Select Role</option>
+                        <option value="ProtocolAdmin">Protocol Admin</option>
+                        <option value="TreasuryAdmin">Treasury Admin</option>
+                        <option value="RiskAdmin">Risk Admin</option>
+                        <option value="LiquidationAdmin">Liquidation Admin</option>
+                        <option value="OracleAdmin">Oracle Admin</option>
+                        <option value="EmergencyAdmin">Emergency Admin</option>
+                    </select>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn">Grant Role</button>
+                    <button type="button" class="btn btn-danger" onclick="revokeAdminRole()">Revoke Role</button>
+                    <button type="button" class="btn btn-warning" onclick="closeModal('adminModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let canisterId = "rdmx6-jaaaa-aaaah-qdrha-cai"; // Update with your canister ID
+        let actor = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeActor();
+            loadDashboardData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadDashboardData, 30000);
+        });
+
+        // Initialize IC actor
+        async function initializeActor() {
+            try {
+                const authClient = await AuthClient.create();
+                const isAuthenticated = await authClient.isAuthenticated();
+                
+                if (!isAuthenticated) {
+                    await authClient.login({
+                        identityProvider: "https://identity.ic0.app",
+                        onSuccess: () => {
+                            window.location.reload();
+                        }
+                    });
+                    return;
+                }
+
+                const identity = authClient.getIdentity();
+                const agent = new HttpAgent({ identity });
+                
+                if (process.env.NODE_ENV !== "production") {
+                    agent.fetchRootKey();
+                }
+
+                actor = Actor.createActor(idlFactory, {
+                    agent,
+                    canisterId: canisterId,
+                });
+            } catch (error) {
+                console.error("Failed to initialize actor:", error);
+                showError("Failed to connect to the Internet Computer. Please refresh the page.");
+            }
+        }
+
+        // Load all dashboard data
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadGovernanceStats(),
+                    loadProtocolParameters(),
+                    loadActiveProposals(),
+                    loadAdminRoles(),
+                    loadSystemStatus(),
+                    loadRecentActivity()
+                ]);
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+                showError("Error loading dashboard data. Please try again.");
+            }
+        }
+
+        // Load governance statistics
+        async function loadGovernanceStats() {
+            try {
+                const stats = await actor.get_governance_stats();
+                
+                document.getElementById('governance-stats').innerHTML = `
+                    <div class="stat-value">${stats.total_proposals}</div>
+                    <div class="stat-label">Total Proposals</div>
+                    <div style="margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Active:</span>
+                            <span class="status-active status-indicator"></span>
+                            <span>${stats.active_proposals}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Executed:</span>
+                            <span class="status-active status-indicator"></span>
+                            <span>${stats.executed_proposals}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Votes Cast:</span>
+                            <span>${stats.total_votes_cast}</span>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("Error loading governance stats:", error);
+                document.getElementById('governance-stats').innerHTML = 
+                    '<div class="error">Error loading governance statistics</div>';
+            }
+        }
+
+        // Load protocol parameters
+        async function loadProtocolParameters() {
+            try {
+                const parameters = await actor.get_all_protocol_parameters();
+                
+                let html = '<div class="parameter-list">';
+                parameters.forEach(param => {
+                    const formattedValue = formatParameterValue(param.current_value, param.value_type);
+                    html += `
+                        <div class="parameter-item">
+                            <div class="parameter-name">${param.key.replace(/_/g, ' ').toUpperCase()}</div>
+                            <div class="parameter-value">${formattedValue}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                document.getElementById('protocol-parameters').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading parameters:", error);
+                document.getElementById('protocol-parameters').innerHTML = 
+                    '<div class="error">Error loading protocol parameters</div>';
+            }
+        }
+
+        // Load active proposals
+        async function loadActiveProposals() {
+            try {
+                const proposals = await actor.get_proposals_by_status({Active: null}, 0, 5);
+                
+                let html = '';
+                if (proposals.length === 0) {
+                    html = '<div style="text-align: center; color: #666; padding: 20px;">No active proposals</div>';
+                } else {
+                    proposals.forEach(proposal => {
+                        html += `
+                            <div class="proposal-item">
+                                <div class="proposal-title">${proposal.title}</div>
+                                <div class="proposal-meta">
+                                    Type: ${proposal.proposal_type} | 
+                                    Yes: ${proposal.yes_votes} | 
+                                    No: ${proposal.no_votes}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                document.getElementById('active-proposals').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading proposals:", error);
+                document.getElementById('active-proposals').innerHTML = 
+                    '<div class="error">Error loading active proposals</div>';
+            }
+        }
+
+        // Load admin roles
+        async function loadAdminRoles() {
+            try {
+                const admins = await actor.get_all_admin_roles();
+                const activeAdmins = admins.filter(admin => admin.is_active);
+                
+                let html = `<div class="stat-value">${activeAdmins.length}</div>
+                           <div class="stat-label">Active Admins</div>
+                           <div class="admin-list">`;
+                
+                activeAdmins.forEach(admin => {
+                    html += `
+                        <div class="admin-item">
+                            <div>
+                                <div style="font-weight: 600;">${admin.principal.toText().substring(0, 10)}...</div>
+                                <div class="admin-role">${admin.role_type}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('admin-roles').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading admin roles:", error);
+                document.getElementById('admin-roles').innerHTML = 
+                    '<div class="error">Error loading admin roles</div>';
+            }
+        }
+
+        // Load system status
+        async function loadSystemStatus() {
+            try {
+                const status = await actor.get_system_status();
+                
+                let html = '';
+                Object.entries(status).forEach(([key, value]) => {
+                    const statusClass = value ? 'status-warning' : 'status-active';
+                    const statusText = value ? 'ENABLED' : 'DISABLED';
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span>${key.replace(/_/g, ' ').toUpperCase()}:</span>
+                            <div>
+                                <span class="${statusClass} status-indicator"></span>
+                                <span>${statusText}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('system-status').innerHTML = html;
+            } catch (error) {
+                console.error("Error loading system status:", error);
+                document.getElementById('system-status').innerHTML = 
+                    '<div class="error">Error loading system status</div>';
+            }
+        }
+
+        // Load recent activity (placeholder)
+        async function loadRecentActivity() {
+            // This would load from audit logs in a real implementation
+            const activities = [
+                { action: "Parameter Updated", details: "LTV ratio changed to 65%", time: "2 hours ago" },
+                { action: "Proposal Created", details: "Emergency threshold adjustment", time: "4 hours ago" },
+                { action: "Admin Role Granted", details: "Treasury admin role assigned", time: "6 hours ago" }
+            ];
+            
+            let html = '';
+            activities.forEach(activity => {
+                html += `
+                    <div style="border-left: 3px solid #4facfe; padding: 10px; margin-bottom: 10px; background: #f8f9fa;">
+                        <div style="font-weight: 600;">${activity.action}</div>
+                        <div style="color: #666; font-size: 0.9rem;">${activity.details}</div>
+                        <div style="color: #999; font-size: 0.8rem; margin-top: 5px;">${activity.time}</div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('recent-activity').innerHTML = html;
+        }
+
+        // Utility function to format parameter values
+        function formatParameterValue(value, type) {
+            switch (type) {
+                case 'Percentage':
+                    return `${(value / 100).toFixed(2)}%`;
+                case 'Duration':
+                    return `${value} days`;
+                case 'Boolean':
+                    return value === 1 ? 'Enabled' : 'Disabled';
+                case 'Amount':
+                    return `${(value / 1_000_000).toFixed(2)}M IDR`;
+                default:
+                    return value.toString();
+            }
+        }
+
+        // Modal functions
+        function openParameterModal() {
+            document.getElementById('parameterModal').style.display = 'block';
+        }
+
+        function openProposalModal() {
+            document.getElementById('proposalModal').style.display = 'block';
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Parameter form submission
+        document.getElementById('parameterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const key = document.getElementById('paramKey').value;
+            const value = parseInt(document.getElementById('paramValue').value);
+            const reason = document.getElementById('paramReason').value;
+            
+            try {
+                const result = await actor.set_protocol_parameter(key, value);
+                alert('Parameter updated successfully!');
+                closeModal('parameterModal');
+                loadProtocolParameters();
+            } catch (error) {
+                console.error("Error updating parameter:", error);
+                alert('Error updating parameter: ' + error.message);
+            }
+        });
+
+        // Proposal form submission
+        document.getElementById('proposalForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const proposalType = { [document.getElementById('proposalType').value]: null };
+            const title = document.getElementById('proposalTitle').value;
+            const description = document.getElementById('proposalDescription').value;
+            
+            try {
+                const result = await actor.create_proposal(proposalType, title, description, []);
+                alert('Proposal created successfully!');
+                closeModal('proposalModal');
+                loadActiveProposals();
+            } catch (error) {
+                console.error("Error creating proposal:", error);
+                alert('Error creating proposal: ' + error.message);
+            }
+        });
+
+        // Admin management functions
+        async function grantAdminRole() {
+            const principal = document.getElementById('adminPrincipal').value;
+            const roleType = { [document.getElementById('adminRole').value]: null };
+            
+            try {
+                const result = await actor.grant_admin_role(
+                    Principal.fromText(principal),
+                    roleType,
+                    [],  // permissions - would be defined based on role
+                    []   // expires_at - optional
+                );
+                alert('Admin role granted successfully!');
+                closeModal('adminModal');
+                loadAdminRoles();
+            } catch (error) {
+                console.error("Error granting admin role:", error);
+                alert('Error granting admin role: ' + error.message);
+            }
+        }
+
+        async function revokeAdminRole() {
+            const principal = document.getElementById('adminPrincipal').value;
+            
+            try {
+                const result = await actor.revoke_admin_role(Principal.fromText(principal));
+                alert('Admin role revoked successfully!');
+                closeModal('adminModal');
+                loadAdminRoles();
+            } catch (error) {
+                console.error("Error revoking admin role:", error);
+                alert('Error revoking admin role: ' + error.message);
+            }
+        }
+
+        // System control functions
+        async function emergencyStop() {
+            if (confirm('Are you sure you want to activate emergency stop? This will halt all system operations.')) {
+                try {
+                    const result = await actor.emergency_stop();
+                    alert('Emergency stop activated!');
+                    loadSystemStatus();
+                } catch (error) {
+                    console.error("Error activating emergency stop:", error);
+                    alert('Error activating emergency stop: ' + error.message);
+                }
+            }
+        }
+
+        async function resumeOperations() {
+            if (confirm('Are you sure you want to resume operations?')) {
+                try {
+                    const result = await actor.resume_operations();
+                    alert('Operations resumed successfully!');
+                    loadSystemStatus();
+                } catch (error) {
+                    console.error("Error resuming operations:", error);
+                    alert('Error resuming operations: ' + error.message);
+                }
+            }
+        }
+
+        async function setMaintenanceMode(enabled) {
+            const action = enabled ? 'enable' : 'disable';
+            if (confirm(`Are you sure you want to ${action} maintenance mode?`)) {
+                try {
+                    const result = await actor.set_maintenance_mode(enabled);
+                    alert(`Maintenance mode ${action}d successfully!`);
+                    loadSystemStatus();
+                } catch (error) {
+                    console.error(`Error ${action}ing maintenance mode:`, error);
+                    alert(`Error ${action}ing maintenance mode: ` + error.message);
+                }
+            }
+        }
+
+        // Utility functions
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.body.insertBefore(errorDiv, document.body.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

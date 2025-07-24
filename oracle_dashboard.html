@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends Oracle Management Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            padding: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.success { border-left-color: #27ae60; }
+        .stat-card.warning { border-left-color: #f39c12; }
+        .stat-card.error { border-left-color: #e74c3c; }
+        .stat-card.info { border-left-color: #3498db; }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .btn.danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .btn.success:hover {
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .prices-table {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status.fresh {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .status.stale {
+            background: #fdeaea;
+            color: #e74c3c;
+        }
+
+        .confidence-bar {
+            width: 100px;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .confidence-fill.high { background: #27ae60; }
+        .confidence-fill.medium { background: #f39c12; }
+        .confidence-fill.low { background: #e74c3c; }
+
+        .log-container {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .log-entry.success { background: rgba(39, 174, 96, 0.2); }
+        .log-entry.error { background: rgba(231, 76, 60, 0.2); }
+        .log-entry.info { background: rgba(52, 152, 219, 0.2); }
+
+        .emergency-panel {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .emergency-panel h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .controls-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 Agrilends Oracle Dashboard</h1>
+            <p>Real-time Commodity Price Management & Monitoring</p>
+        </div>
+
+        <div class="dashboard">
+            <!-- Statistics Grid -->
+            <div class="stats-grid">
+                <div class="stat-card success">
+                    <div class="stat-value" id="total-fetches">0</div>
+                    <div class="stat-label">Total Fetches</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-value" id="success-rate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="commodities-tracked">0</div>
+                    <div class="stat-label">Commodities Tracked</div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-value" id="stale-prices">0</div>
+                    <div class="stat-label">Stale Prices</div>
+                </div>
+            </div>
+
+            <!-- Control Panels -->
+            <div class="controls-section">
+                <div class="control-panel">
+                    <h3>📊 Fetch Commodity Price</h3>
+                    <div class="form-group">
+                        <label for="commodity-select">Select Commodity:</label>
+                        <select id="commodity-select">
+                            <option value="rice">Rice (Beras)</option>
+                            <option value="corn">Corn (Jagung)</option>
+                            <option value="wheat">Wheat (Gandum)</option>
+                            <option value="soybean">Soybean (Kedelai)</option>
+                            <option value="sugar">Sugar (Gula)</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="fetchPrice()">🔄 Fetch Price</button>
+                    <button class="btn" onclick="getAllPrices()">📈 Get All Prices</button>
+                </div>
+
+                <div class="control-panel">
+                    <h3>⚙️ Manual Price Override</h3>
+                    <div class="form-group">
+                        <label for="manual-commodity">Commodity:</label>
+                        <select id="manual-commodity">
+                            <option value="rice">Rice (Beras)</option>
+                            <option value="corn">Corn (Jagung)</option>
+                            <option value="wheat">Wheat (Gandum)</option>
+                            <option value="soybean">Soybean (Kedelai)</option>
+                            <option value="sugar">Sugar (Gula)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-price">Price (IDR per kg):</label>
+                        <input type="number" id="manual-price" placeholder="15000" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="manual-source">Source (optional):</label>
+                        <input type="text" id="manual-source" placeholder="manual_admin">
+                    </div>
+                    <button class="btn success" onclick="setManualPrice()">✅ Set Price</button>
+                </div>
+            </div>
+
+            <!-- Current Prices Table -->
+            <div class="prices-table">
+                <h3>💰 Current Commodity Prices</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Commodity</th>
+                            <th>Price (IDR/kg)</th>
+                            <th>Status</th>
+                            <th>Confidence</th>
+                            <th>Last Updated</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prices-tbody">
+                        <!-- Prices will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Oracle Statistics -->
+            <div class="control-panel">
+                <h3>📊 Oracle Statistics</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <strong>Average Response Time:</strong>
+                        <div id="avg-response-time">0ms</div>
+                    </div>
+                    <div>
+                        <strong>Uptime Percentage:</strong>
+                        <div id="uptime-percentage">100%</div>
+                    </div>
+                    <div>
+                        <strong>Failed Fetches:</strong>
+                        <div id="failed-fetches">0</div>
+                    </div>
+                    <div>
+                        <strong>Last Update:</strong>
+                        <div id="last-update">Never</div>
+                    </div>
+                </div>
+                <button class="btn" onclick="refreshStatistics()">🔄 Refresh Stats</button>
+                <button class="btn" onclick="healthCheck()">🏥 Health Check</button>
+            </div>
+
+            <!-- Emergency Controls -->
+            <div class="emergency-panel" id="emergency-panel">
+                <h3>🚨 Emergency Controls</h3>
+                <p>Use these controls only in emergency situations</p>
+                <div style="margin-top: 20px;">
+                    <button class="btn danger" onclick="enableEmergencyMode()">🔴 Enable Emergency Mode</button>
+                    <button class="btn success" onclick="disableEmergencyMode()">🟢 Disable Emergency Mode</button>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="log-container">
+                <h3 style="color: #ecf0f1; margin-bottom: 15px;">📋 Activity Log</h3>
+                <div id="activity-log">
+                    <div class="log-entry info">[INFO] Oracle dashboard initialized</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { Actor, HttpAgent } from 'https://cdn.skypack.dev/@dfinity/agent';
+        
+        // Backend actor and configuration
+        let backendActor = null;
+        const canisterId = 'your-canister-id-here'; // Replace with actual canister ID
+        
+        // Initialize the actor
+        async function initActor() {
+            try {
+                const agent = new HttpAgent({
+                    host: 'https://ic0.app' // Use local for development: http://localhost:8080
+                });
+                
+                // For local development, fetch root key
+                if (window.location.hostname === 'localhost') {
+                    await agent.fetchRootKey();
+                }
+                
+                // Create the actor (you'll need to generate IDL from your canister)
+                // For now, we'll simulate the actor
+                backendActor = {
+                    fetch_commodity_price: async (commodity) => {
+                        return simulateApiCall(`Fetching price for ${commodity}`);
+                    },
+                    get_commodity_price: async (commodity) => {
+                        return simulateApiCall(`Getting price for ${commodity}`);
+                    },
+                    get_all_commodity_prices: async () => {
+                        return simulateApiCall('Getting all prices');
+                    },
+                    admin_set_commodity_price: async (commodity, price, source) => {
+                        return simulateApiCall(`Setting ${commodity} price to ${price} IDR`);
+                    },
+                    get_oracle_statistics: async () => {
+                        return simulateApiCall('Getting Oracle statistics');
+                    },
+                    oracle_health_check: async () => {
+                        return simulateApiCall('Checking Oracle health');
+                    },
+                    enable_emergency_mode: async () => {
+                        return simulateApiCall('Enabling emergency mode');
+                    },
+                    disable_emergency_mode: async () => {
+                        return simulateApiCall('Disabling emergency mode');
+                    }
+                };
+                
+                addLog('Connected to Agrilends backend canister', 'success');
+                await refreshDashboard();
+                
+            } catch (error) {
+                addLog(`Failed to connect to backend: ${error.message}`, 'error');
+                // Continue with simulation mode
+                initSimulationMode();
+            }
+        }
+        
+        // Simulation mode for testing
+        function initSimulationMode() {
+            addLog('Running in simulation mode for testing', 'info');
+            
+            // Simulate some initial data
+            setTimeout(() => {
+                updateStatistics({
+                    total_fetches: 125,
+                    successful_fetches: 120,
+                    failed_fetches: 5,
+                    average_response_time: 2500000000, // 2.5 seconds in nanoseconds
+                    uptime_percentage: 96.0,
+                    commodities_tracked: 5,
+                    stale_prices_count: 1,
+                    last_update: Date.now() * 1000000 // Convert to nanoseconds
+                });
+                
+                displayPrices([
+                    {
+                        commodity_type: 'rice',
+                        price_per_unit: 15000,
+                        currency: 'IDR',
+                        timestamp: Date.now() * 1000000,
+                        source: 'hargapangan.id',
+                        confidence_score: 85,
+                        is_stale: false
+                    },
+                    {
+                        commodity_type: 'corn',
+                        price_per_unit: 8500,
+                        currency: 'IDR',
+                        timestamp: (Date.now() - 86400000) * 1000000, // 1 day old
+                        source: 'hargapangan.id',
+                        confidence_score: 70,
+                        is_stale: true
+                    }
+                ]);
+            }, 1000);
+        }
+        
+        // Simulate API calls for testing
+        function simulateApiCall(action) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    addLog(`✅ ${action} completed`, 'success');
+                    resolve({ success: true, message: action });
+                }, 1000 + Math.random() * 2000);
+            });
+        }
+        
+        // Fetch commodity price
+        window.fetchPrice = async function() {
+            const commodity = document.getElementById('commodity-select').value;
+            addLog(`Fetching price for ${commodity}...`, 'info');
+            
+            try {
+                const result = await backendActor.fetch_commodity_price(commodity);
+                addLog(`✅ Successfully fetched ${commodity} price`, 'success');
+                await refreshDashboard();
+            } catch (error) {
+                addLog(`❌ Failed to fetch ${commodity} price: ${error.message}`, 'error');
+            }
+        };
+        
+        // Get all prices
+        window.getAllPrices = async function() {
+            addLog('Fetching all commodity prices...', 'info');
+            
+            try {
+                const prices = await backendActor.get_all_commodity_prices();
+                displayPrices(prices);
+                addLog(`✅ Retrieved ${prices.length} commodity prices`, 'success');
+            } catch (error) {
+                addLog(`❌ Failed to fetch prices: ${error.message}`, 'error');
+            }
+        };
+        
+        // Set manual price
+        window.setManualPrice = async function() {
+            const commodity = document.getElementById('manual-commodity').value;
+            const price = parseInt(document.getElementById('manual-price').value);
+            const source = document.getElementById('manual-source').value || 'manual_admin';
+            
+            if (!price || price <= 0) {
+                addLog('❌ Please enter a valid price', 'error');
+                return;
+            }
+            
+            addLog(`Setting manual price for ${commodity}: ${price} IDR...`, 'info');
+            
+            try {
+                await backendActor.admin_set_commodity_price(commodity, price, source);
+                addLog(`✅ Successfully set ${commodity} price to ${price} IDR`, 'success');
+                document.getElementById('manual-price').value = '';
+                await refreshDashboard();
+            } catch (error) {
+                addLog(`❌ Failed to set manual price: ${error.message}`, 'error');
+            }
+        };
+        
+        // Refresh statistics
+        window.refreshStatistics = async function() {
+            addLog('Refreshing Oracle statistics...', 'info');
+            
+            try {
+                const stats = await backendActor.get_oracle_statistics();
+                updateStatistics(stats);
+                addLog('✅ Statistics refreshed', 'success');
+            } catch (error) {
+                addLog(`❌ Failed to refresh statistics: ${error.message}`, 'error');
+            }
+        };
+        
+        // Health check
+        window.healthCheck = async function() {
+            addLog('Performing Oracle health check...', 'info');
+            
+            try {
+                const result = await backendActor.oracle_health_check();
+                addLog(`✅ Health check passed: ${result}`, 'success');
+            } catch (error) {
+                addLog(`⚠️ Health check issues: ${error.message}`, 'error');
+            }
+        };
+        
+        // Emergency mode controls
+        window.enableEmergencyMode = async function() {
+            if (!confirm('Are you sure you want to enable emergency mode? This will use backup prices.')) {
+                return;
+            }
+            
+            addLog('Enabling emergency mode...', 'info');
+            
+            try {
+                await backendActor.enable_emergency_mode();
+                addLog('🚨 Emergency mode enabled - using backup prices', 'error');
+            } catch (error) {
+                addLog(`❌ Failed to enable emergency mode: ${error.message}`, 'error');
+            }
+        };
+        
+        window.disableEmergencyMode = async function() {
+            addLog('Disabling emergency mode...', 'info');
+            
+            try {
+                await backendActor.disable_emergency_mode();
+                addLog('✅ Emergency mode disabled - resuming normal operation', 'success');
+            } catch (error) {
+                addLog(`❌ Failed to disable emergency mode: ${error.message}`, 'error');
+            }
+        };
+        
+        // Update statistics display
+        function updateStatistics(stats) {
+            document.getElementById('total-fetches').textContent = stats.total_fetches;
+            document.getElementById('success-rate').textContent = 
+                stats.total_fetches > 0 ? Math.round(stats.uptime_percentage) + '%' : '100%';
+            document.getElementById('commodities-tracked').textContent = stats.commodities_tracked;
+            document.getElementById('stale-prices').textContent = stats.stale_prices_count;
+            
+            // Detail statistics
+            document.getElementById('avg-response-time').textContent = 
+                Math.round(stats.average_response_time / 1000000) + 'ms';
+            document.getElementById('uptime-percentage').textContent = 
+                Math.round(stats.uptime_percentage * 100) / 100 + '%';
+            document.getElementById('failed-fetches').textContent = stats.failed_fetches;
+            document.getElementById('last-update').textContent = 
+                new Date(stats.last_update / 1000000).toLocaleString();
+        }
+        
+        // Display prices in table
+        function displayPrices(prices) {
+            const tbody = document.getElementById('prices-tbody');
+            tbody.innerHTML = '';
+            
+            prices.forEach(price => {
+                const row = document.createElement('tr');
+                const isStale = price.is_stale || (Date.now() * 1000000 - price.timestamp) > 86400000000000; // 24 hours
+                
+                const confidenceClass = price.confidence_score >= 80 ? 'high' : 
+                                      price.confidence_score >= 60 ? 'medium' : 'low';
+                
+                row.innerHTML = `
+                    <td><strong>${price.commodity_type.toUpperCase()}</strong></td>
+                    <td>IDR ${price.price_per_unit.toLocaleString()}</td>
+                    <td><span class="status ${isStale ? 'stale' : 'fresh'}">${isStale ? 'Stale' : 'Fresh'}</span></td>
+                    <td>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill ${confidenceClass}" style="width: ${price.confidence_score}%"></div>
+                        </div>
+                        ${price.confidence_score}%
+                    </td>
+                    <td>${new Date(price.timestamp / 1000000).toLocaleString()}</td>
+                    <td>${price.source}</td>
+                    <td><button class="btn" onclick="refreshPrice('${price.commodity_type}')">🔄</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Refresh individual price
+        window.refreshPrice = async function(commodity) {
+            addLog(`Refreshing ${commodity} price...`, 'info');
+            
+            try {
+                await backendActor.fetch_commodity_price(commodity);
+                addLog(`✅ Refreshed ${commodity} price`, 'success');
+                await getAllPrices();
+            } catch (error) {
+                addLog(`❌ Failed to refresh ${commodity} price: ${error.message}`, 'error');
+            }
+        };
+        
+        // Refresh entire dashboard
+        async function refreshDashboard() {
+            try {
+                await Promise.all([
+                    refreshStatistics(),
+                    getAllPrices()
+                ]);
+            } catch (error) {
+                addLog(`❌ Dashboard refresh failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('activity-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            
+            // Keep only last 50 entries
+            const entries = logContainer.children;
+            if (entries.length > 50) {
+                logContainer.removeChild(entries[entries.length - 1]);
+            }
+        }
+        
+        // Initialize dashboard
+        window.addEventListener('load', initActor);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrilends - Liquidation Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h1 i {
+            color: #e74c3c;
+            font-size: 2rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Buttons */
+        .btn-danger, .btn-warning, .btn-secondary, .btn-info {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(45deg, #c0392b, #a93226);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(45deg, #e67e22, #d35400);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #7f8c8d, #6c7b7d);
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(45deg, #2980b9, #21618c);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: grid;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card:nth-child(1) { border-left-color: #e74c3c; }
+        .stat-card:nth-child(2) { border-left-color: #f39c12; }
+        .stat-card:nth-child(3) { border-left-color: #27ae60; }
+        .stat-card:nth-child(4) { border-left-color: #9b59b6; }
+        .stat-card:nth-child(5) { border-left-color: #1abc9c; }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .stat-card:nth-child(1) .stat-icon { color: #e74c3c; }
+        .stat-card:nth-child(2) .stat-icon { color: #f39c12; }
+        .stat-card:nth-child(3) .stat-icon { color: #27ae60; }
+        .stat-card:nth-child(4) .stat-icon { color: #9b59b6; }
+        .stat-card:nth-child(5) .stat-icon { color: #1abc9c; }
+
+        .stat-content h3 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-content p {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        /* Loans Grid */
+        .loans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .loan-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .loan-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .loan-card.critical-risk {
+            border-left-color: #e74c3c;
+            background: linear-gradient(135deg, #fff 0%, #fdebea 100%);
+        }
+
+        .loan-card.high-risk {
+            border-left-color: #f39c12;
+            background: linear-gradient(135deg, #fff 0%, #fef9e7 100%);
+        }
+
+        .loan-card.medium-risk {
+            border-left-color: #f1c40f;
+            background: linear-gradient(135deg, #fff 0%, #fffaeb 100%);
+        }
+
+        .loan-card.low-risk {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #fff 0%, #eafaf1 100%);
+        }
+
+        .loan-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .loan-header h4 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+        }
+
+        .risk-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-badge.critical-risk {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .risk-badge.high-risk {
+            background: #f39c12;
+            color: white;
+        }
+
+        .risk-badge.medium-risk {
+            background: #f1c40f;
+            color: #2c3e50;
+        }
+
+        .risk-badge.low-risk {
+            background: #27ae60;
+            color: white;
+        }
+
+        .loan-details {
+            margin-bottom: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #7f8c8d;
+        }
+
+        .value {
+            font-weight: 700;
+        }
+
+        .value.danger {
+            color: #e74c3c;
+        }
+
+        .value.warning {
+            color: #f39c12;
+        }
+
+        .value.success {
+            color: #27ae60;
+        }
+
+        .loan-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .loan-actions button {
+            flex: 1;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content.large {
+            max-width: 900px;
+        }
+
+        .modal-content.extra-large {
+            max-width: 1200px;
+        }
+
+        .modal-header {
+            padding: 25px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        /* Eligibility Results */
+        .eligibility-result {
+            margin: 20px 0;
+        }
+
+        .eligibility-card {
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 5px solid #3498db;
+        }
+
+        .eligibility-card.eligible {
+            border-left-color: #e74c3c;
+            background: linear-gradient(135deg, #fff 0%, #fdebea 100%);
+        }
+
+        .eligibility-card.not-eligible {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #fff 0%, #eafaf1 100%);
+        }
+
+        .eligibility-card h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .eligibility-details {
+            margin-bottom: 15px;
+        }
+
+        .eligibility-reason {
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            color: #2c3e50;
+            font-style: italic;
+        }
+
+        /* Bulk Selection */
+        .bulk-selection {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .loans-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .loan-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .loan-checkbox:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .loan-checkbox input {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+
+        .loan-summary {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .loan-summary strong {
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+
+        .overdue {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .health-ratio {
+            color: #7f8c8d;
+        }
+
+        /* Tables */
+        .records-table-container {
+            overflow-x: auto;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .records-table th,
+        .records-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .records-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .records-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Warning Banner */
+        .warning-banner {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-banner i {
+            font-size: 1.2rem;
+        }
+
+        /* No Data State */
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .no-data i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+        }
+
+        .no-data h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        /* Loading Indicator */
+        .loading-indicator {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #ecf0f1;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 3000;
+            max-width: 400px;
+            border-left: 5px solid #3498db;
+        }
+
+        .notification.success {
+            border-left-color: #27ae60;
+            background: linear-gradient(135deg, #fff 0%, #eafaf1 100%);
+        }
+
+        .notification.error {
+            border-left-color: #e74c3c;
+            background: linear-gradient(135deg, #fff 0%, #fdebea 100%);
+        }
+
+        .notification.warning {
+            border-left-color: #f39c12;
+            background: linear-gradient(135deg, #fff 0%, #fef9e7 100%);
+        }
+
+        .notification i {
+            font-size: 1.2rem;
+        }
+
+        .notification.success i {
+            color: #27ae60;
+        }
+
+        .notification.error i {
+            color: #e74c3c;
+        }
+
+        .notification.warning i {
+            color: #f39c12;
+        }
+
+        .close-notification {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #7f8c8d;
+            margin-left: auto;
+        }
+
+        /* Status Classes */
+        .status-active {
+            color: #27ae60;
+        }
+
+        .status-repaid {
+            color: #3498db;
+        }
+
+        .status-defaulted {
+            color: #e74c3c;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header-actions {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .loans-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .loan-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="fas fa-gavel"></i>
+                Liquidation Management System
+            </h1>
+            <p>Monitor and manage loan liquidations for defaulted borrowers</p>
+            
+            <div class="header-actions">
+                <button id="triggerLiquidationBtn" class="btn-danger">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Trigger Liquidation
+                </button>
+                
+                <button id="bulkLiquidationBtn" class="btn-warning">
+                    <i class="fas fa-list"></i>
+                    Bulk Liquidation
+                </button>
+                
+                <button id="emergencyLiquidationBtn" class="btn-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Emergency Liquidation
+                </button>
+                
+                <button id="refreshLiquidationData" class="btn-info">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh Data
+                </button>
+            </div>
+            
+            <div id="lastRefresh" style="margin-top: 15px; color: #7f8c8d; font-size: 14px;">
+                Last updated: Never
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <!-- Statistics Section -->
+            <div class="section">
+                <h2>
+                    <i class="fas fa-chart-bar"></i>
+                    Liquidation Statistics
+                </h2>
+                <div id="liquidationStatistics">
+                    <div class="no-data">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <h3>Loading Statistics...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Metrics (only visible to admins) -->
+            <div class="section" id="metricsSection" style="display: none;">
+                <h2>
+                    <i class="fas fa-tachometer-alt"></i>
+                    Admin Metrics
+                </h2>
+                <div id="liquidationMetrics">
+                    <div class="no-data">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <h3>Loading Metrics...</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eligible Loans Section -->
+            <div class="section">
+                <h2>
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Loans Eligible for Liquidation
+                </h2>
+                <div id="eligibleLoansContainer">
+                    <div class="no-data">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <h3>Loading Eligible Loans...</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading-indicator">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="liquidation_frontend.js"></script>
+</body>
+</html>
